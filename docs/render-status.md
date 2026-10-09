@@ -1,66 +1,78 @@
 # Render-Status, geprüft am 9. Oktober 2026
 
-## Bestätigte Zuordnung
+## Tatsächlicher Dienst
 
-- Workspace: `pcloud-mcp`
-- Workspace-ID: `tea-db4bm53l550s73b87vl0`, ausdrücklich vom Besitzer bestätigt.
-- Repository: `cyrano-janus/pcloud-mcp`, `main`.
-- Ziel: Frankfurt, Free. Keine kostenpflichtigen Ressourcen autorisiert oder angelegt.
-
-## Tatsächlich beobachtet
-
-GitHub-Head bei Beginn dieser Prüfung: `28f473495825ca804e645adbb4bfc2b33d1cb6a7`.
-Der CI-Lauf [37932871047](https://github.com/cyrano-janus/pcloud-mcp/actions/runs/37932871047)
-hat einschließlich Container-Build und Startprüfung erfolgreich abgeschlossen.
-Streamable HTTP, OAuth-Introspection, Besitzer-/Audience-/Scope-Bindung und
-getrennte Policy sind implementiert; siehe `docs/verification.md`.
-
-Die Render-Abfrage `list_services` mit expliziter Workspace-ID gab erfolgreich
-auf Transportebene den Inhalt `null` zurück. Auch nach bestätigter Workspace-
-Auswahl und mit `includePreviews=true` wurde ausschließlich `null` geliefert.
-Dies wurde **nicht** als verlässlich leere Service-Liste gewertet.
-
-Deshalb wurde kein neuer Service angelegt, kein bestehender Service verändert
-und kein Deployment ausgelöst. Damit werden unbekannte vorhandene Dienste nicht
-überschrieben oder dupliziert.
-
-| Angabe | Verifizierter Stand |
+| Angabe | Verifiziert |
 | --- | --- |
-| Tatsächliche Service-URL | Nicht ermittelt |
-| Service-ID | Nicht ermittelt |
-| Deployment-ID | Nicht ermittelt |
-| Live-Health-/HTTPS-Prüfung | Nicht ausgeführt, Ziel unbekannt |
-| Live-MCP-/OAuth-Sicherheitsprüfung | Nicht ausgeführt |
-| Reale pCloud-/Client-Interoperabilität | Noch nicht nachgewiesen |
+| Workspace | `pcloud-mcp` (`tea-db4bm53l550s73b87vl0`) |
+| Service | `pcloud-mcp` |
+| Service-ID | `srv-db4jqecs728c73fj5qd0` |
+| URL | https://pcloud-mcp-ppew.onrender.com |
+| Dashboard | https://dashboard.render.com/web/srv-db4jqecs728c73fj5qd0 |
+| Region / Laufzeit-Tarif | Frankfurt / Free |
+| Erstes Deployment | `dep-db4jqf4s728c73fj5sm0` |
+| Erster deployter Commit | `57e81a3cdd0350ffc7b6e891e85bd85171ff435a` |
+| Erster Deployment-Status | `live`, beendet 2026-10-09 19:15:52 UTC |
+| Laufzeit | Native Go, `cmd/pcloud-remote` |
 
-## Reproduzierbare nächste Prüfung
+Die Service-Inventarisierung hatte zuvor nur `null` geliefert. Der Besitzer hat
+anschließend ausdrücklich bestätigt, dass lediglich Account und Workspace
+eingerichtet waren. Danach wurde der einzelne Free-Web-Service mit der bestätigten
+Workspace-ID angelegt. Es wurden keine kostenpflichtigen Laufzeit-Ressourcen angelegt.
 
-Nach Klärung des existierenden Dienstes kann lokal oder mit dem GitHub-Workflow
-`verify-deployment` getestet werden:
+## Tatsächliche Live-Prüfung
 
-```sh
-python3 scripts/verify_remote.py https://TATSAECHLICHER-SERVICE.onrender.com --mode readiness
-# Erst nach Aktivierung des vollständig konfigurierten OAuth-Dienstes:
-python3 scripts/verify_remote.py https://TATSAECHLICHER-SERVICE.onrender.com --mode protected
-```
+Der [JSON-Bericht](render-readiness-report.json) enthält Zeitpunkt und Zuordnung.
+Geprüft wurde mit TLS-Zertifikatsprüfung über den Plattform-Egress-Proxy und ohne
+Redirect-Folgen:
 
-Die URL oben ist ausdrücklich ein Platzhalter. Der Prüfer validiert HTTPS mit
-Zertifikatsprüfung, folgt keinen Redirects und schreibt einen JSON-Nachweis.
-Readiness verlangt einen erreichbaren Health-Endpunkt und 503 für MCP.
-Protected prüft zusätzlich Resource-Metadata, 401 für fehlende/ungültige Tokens,
-403 für fremde Origin und 400 für Query-Tokens. Er führt keine authentifizierten
-Dateioperationen aus und bezeichnet solche Tests ausdrücklich als offen.
+| Prüfung | Ergebnis |
+| --- | --- |
+| HTTPS `GET /healthz` | 200 |
+| `GET /mcp` | 503, Zugriff gesperrt |
+| `POST /mcp` | 503, Zugriff gesperrt |
+| `DELETE /mcp` | 503, Zugriff gesperrt |
 
-## Noch notwendige Freigaben und Konfiguration
+Dieser Dienst bietet ausschließlich Bereitschaft. Es sind keine pCloud-Tokens
+hinterlegt und keine Dateioperationen öffentlich verfügbar. Der vollständige
+Streamable-HTTP-/OAuth-Code ist im Repository vorhanden, aber hier noch nicht
+aktiviert. Reale OAuth-Anmeldung, Widerruf, pCloud-Zugriff und Client-Interoperabilität
+sind weiterhin nicht nachgewiesen.
 
-- Auswertbare Service-Inventarisierung über Render; bei weiterhin defekter
-  Integration ist ein vom Nutzer erlaubter Dashboard-Fallback erforderlich.
-- pCloud-OAuth-App, manuelle Kontofreigabe, Zugangstoken, Region, Konto-ID und
-  freigegebene Ordner-ID. Secrets ausschließlich in Render/Secret-Dateien.
-- Externer OAuth-Authorization-Server gemäß `docs/deployment.md`, einschließlich
-  Issuer, Introspection-Client, Subject und Audience der tatsächlichen Service-URL.
-- Reale Login-, Tokenablauf-, Widerrufs- und MCP-Client-Tests vor Freigabe.
+## Tatsächliche CI/CD-Einstellungen und Abweichungen
 
-Die Blueprint-Einstellung `autoDeployTrigger: checksPass` ist versioniert.
-Ihre Anwendung auf einen tatsächlichen Render-Dienst ist noch nicht verifiziert;
-eine aktive CI/CD-Verknüpfung wird deshalb noch nicht behauptet.
+Render ist mit Repository `cyrano-janus/pcloud-mcp`, Branch `main`, verbunden.
+Die direkte Service-Anlage setzt `autoDeploy=yes` und `autoDeployTrigger=commit`.
+Damit erfolgen automatische Deployments bei Commits; das Warten auf erfolgreiche
+GitHub-Prüfungen ist **noch nicht aktiv**. Die Blueprint-Vorlagen enthalten
+`checksPass`; sie wurden durch die direkte Tool-Anlage nicht angewendet.
+
+Die Render-API-Antwort zeigt außerdem `healthCheckPath` leer. `/healthz` existiert
+und wurde extern geprüft, ist jedoch noch nicht als Plattform-Health-Check
+konfiguriert. Die installierten Plugin-Tools bieten keine Änderung dieser beiden
+Service-Einstellungen. Im Dashboard sind noch `After CI Checks Pass` und
+Health-Check-Pfad `/healthz` einzustellen bzw. der Blueprint anzuwenden.
+
+Render verwendete im ersten Build Go 1.27.1; die CI verwendet Go 1.26.9. Für den
+vollständigen Dienst pinnt der vorbereitete Docker-Build seine Toolchain und sein
+Basisimage. Der native Bereitschafts-Build ist kein Beleg für ein identisches
+Container-Build-Ergebnis.
+
+## Nächste Freigabeschritte
+
+1. pCloud-OAuth-App einrichten und das Konto manuell freigeben. Zugangstoken,
+   Region, bestätigte Konto-ID und erlaubte Ordner-ID ausschließlich in Render
+   bzw. geschützten Secret-Dateien konfigurieren, niemals im Repository oder Chat.
+2. Externen OAuth-Authorization-Server gemäß [Deployment-Vertrag](deployment.md)
+   einrichten. Die Audience muss exakt
+   `https://pcloud-mcp-ppew.onrender.com/mcp` sein.
+3. Bestehenden Dienst kontrolliert auf die Docker-Konfiguration von
+   `render-secure.yaml` umstellen; keinen zweiten Dienst anlegen. Zunächst lesend.
+4. OAuth-Metadata und Token-/Origin-Abweisung mit `verify_remote.py --mode protected`
+   prüfen, dann echten Client-Login, Tokenablauf, Widerruf und erlaubte
+   Dateioperationen abnehmen. Erst anschließend den Datei-Endpunkt freigeben.
+
+Der vorhandene [CI-Nachweis](https://github.com/cyrano-janus/pcloud-mcp/actions/runs/37934045114)
+für den ersten deployten Commit ist erfolgreich. Dokumentations-Commits und ihre
+automatischen Folge-Deployments erhalten eigene IDs; das oben genannte Deployment
+bleibt ausdrücklich der erste geprüfte Stand.

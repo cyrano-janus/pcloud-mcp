@@ -1,0 +1,37 @@
+{
+  "tested_at": "2026-10-09T19:16:47.498149+00:00",
+  "service_url": "https://pcloud-mcp-ppew.onrender.com",
+  "mode": "readiness",
+  "checks": [
+    {
+      "check": "https_health",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "mcp_disabled_GET",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "check": "mcp_disabled_POST",
+      "status": 503,
+      "passed": true
+    },
+    {
+      "check": "mcp_disabled_DELETE",
+      "status": 503,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "not_tested": [
+    "authenticated MCP operation",
+    "real pCloud access",
+    "OAuth login and revocation"
+  ],
+  "service_id": "srv-db4jqecs728c73fj5qd0",
+  "deployment_id": "dep-db4jqf4s728c73fj5sm0",
+  "commit": "57e81a3cdd0350ffc7b6e891e85bd85171ff435a",
+  "transport": "platform egress proxy; default TLS certificate verification; redirects disabled"
+}
