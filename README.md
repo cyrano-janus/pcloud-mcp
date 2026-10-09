@@ -82,3 +82,15 @@ Go, [offizielles MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk), MC
 **[Vollständige Produktspezifikation](SPEC.md)**
 
 Roadmap: M0 Fundament → M1 Lesen/Suche → M2 Dateiverwaltung/Upload → M3 geschützte destruktive Operationen.
+
+## Render (M0b readiness only)
+
+`render.yaml` defines an optional **free Frankfurt** Render web service, deployed
+from `main` with automatic deploys. The HTTP entrypoint
+`cmd/pcloud-remote` offers `GET /healthz` and **deliberately rejects every
+`/mcp` request with HTTP 503**. This is **not a working remote MCP server**;
+there is no OAuth, pCloud connectivity or user data access yet. Never forward
+pCloud credentials to this placeholder. Remote functionality will be enabled
+only after authorization, policy enforcement and integration tests pass.
+
+The local stdio binary remains `cmd/pcloud-mcp`.
