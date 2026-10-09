@@ -2,6 +2,27 @@
 
 MCP-Server in Go für den kontrollierten Zugriff auf das eigene pCloud-Konto.
 
+## Aktuell nutzbarer Stand
+
+Stand: **9. Oktober 2026**. Der Dienst ist auf **Render Free in Frankfurt**
+bereitgestellt: https://pcloud-mcp-ppew.onrender.com.
+
+| Bereich | Aktueller Stand |
+| --- | --- |
+| Gehosteter Dienst | HTTPS-Bereitschaftsdienst; `GET /healthz` liefert 200 |
+| Öffentlicher MCP-Endpunkt | `/mcp` bleibt mit 503 gesperrt; keine öffentlichen Dateioperationen |
+| Gehostete pCloud-Einrichtung | Implementiert, derzeit deaktiviert; `/setup/pcloud` liefert 503 |
+| pCloud-App | Antrag für `Ppcloud-mcp-cyrano` laut Besitzer eingereicht; Freigabe steht aus |
+| Lokaler MCP-Server | stdio-Transport; Datei-Tools nach eigener Konto- und Ordnerkonfiguration |
+| Vollständiger Remote-MCP-Server | Streamable HTTP und OAuth-Zugriffsschutz implementiert, noch nicht im Live-Dienst aktiviert |
+
+**Der Render-Dienst ist noch kein nutzbarer pCloud-Dateizugriff für ChatGPT.**
+Für diesen Betrieb fehlen die pCloud-App-Freigabe und Zugangskonfiguration,
+die Einrichtung des externen OAuth-Anmeldedienstes sowie reale Konto- und
+Client-Tests. Die gehostete pCloud-Freigabe allein schaltet `/mcp` nicht frei.
+
+## Implementierung
+
 **Status: 0.3.0-rc.1.** Implementiert sind lokale Nutzung über stdio und ein
 OAuth-geschützter HTTP-Transport. Die Produktspezifikation bleibt
 [0.2.0-draft](SPEC.md). Ein echter pCloud-Konto- und ChatGPT/Claude-End-to-End-Test
@@ -11,7 +32,10 @@ Go **1.26.9**, offizielles **MCP-Go-SDK v1.8.0**, MCP **2026-07-28**.
 Der Server aktiviert ausschließlich diese MCP-Version. Ältere Clients sind damit
 nicht automatisch kompatibel. Versionsstand zuletzt am 9. Oktober 2026 geprüft.
 
-## Funktionen
+## Implementierte Datei-Tools
+
+Diese Tools gehören zum vollständigen Server. Sie sind im aktuellen
+Render-Bereitschaftsdienst nicht verfügbar.
 
 | Tool | Verhalten |
 | --- | --- |
@@ -31,8 +55,9 @@ Existenzprüfung allein würde konkurrierendes Überschreiben nicht verhindern.
 
 ## pCloud über Render verbinden
 
-Die pCloud-Freigabe kann jetzt über den gehosteten Dienst erfolgen, ohne lokalen
-Helfer. Der HTTPS-Callback ist `/oauth/pcloud/callback`, die Einrichtung beginnt
+Nach Freigabe und Konfiguration der eigenen pCloud-App kann die pCloud-Freigabe
+über den gehosteten Dienst erfolgen, ohne lokalen Helfer.
+Der HTTPS-Callback ist `/oauth/pcloud/callback`, die Einrichtung beginnt
 unter `/setup/pcloud`. Sie ist standardmäßig gesperrt und benötigt eigene
 Einrichtungsschlüssel sowie die pCloud-App-Konfiguration. Das Zugangstoken wird
 als verschlüsseltes Paket zur geschützten Übernahme in Render bereitgestellt.
@@ -101,9 +126,14 @@ Zielplattform ist **Render**. [Deployment-Anleitung](docs/deployment.md) und
 kostenloser Einstiegsplan, `/healthz`, Deploy nach erfolgreichen CI-Prüfungen.
 Der Free-Plan kann Kaltstarts haben; er ist kein Verfügbarkeitsversprechen.
 
-`render.yaml` erhält den separat vorbereiteten Bereitschaftsdienst
+[`render.yaml`](render.yaml) beschreibt den aktuell betriebenen Bereitschaftsdienst
 `cmd/pcloud-remote`: `/healthz` antwortet, `/mcp` bleibt mit 503 gesperrt.
 Er wird erst nach vollständiger Einrichtung durch den eigentlichen Dienst ersetzt.
+
+Die tatsächlichen Service-Einstellungen und Abweichungen von den Vorlagen stehen
+im [Render-Status](docs/render-status.md): Deployments starten aktuell bei einem
+Commit; das Warten auf erfolgreiche CI-Prüfungen und der Plattform-Health-Check
+`/healthz` sind noch nicht eingerichtet. Die Vorlagen enthalten diese Einstellungen.
 
 Remote-Zugriffe benötigen zusätzlich einen externen OAuth-2.1-Anmeldedienst mit
 Token-Introspection. pCloud-Zugangstoken und MCP-Client-Zugangstoken sind getrennt.
@@ -111,6 +141,12 @@ Fehlende Konfiguration verhindert den Start. Pro Instanz ist genau ein Besitzer
 mit einem Ordnerbaum gebunden; dies ist kein mandantenfähiger Dienst.
 
 ## Entwicklung und Nachweise
+
+Der [CI-Lauf für die gehostete Einrichtung](https://github.com/cyrano-janus/pcloud-mcp/actions/runs/37981894162)
+war erfolgreich: Race-Tests, statische Prüfungen, sechs Fuzz-Ziele,
+20 gezielte Sicherheitsmutationen, Schwachstellen-/Secret-Prüfungen und
+Docker-Build mit Startprüfung. Das belegt die automatisierten Prüfungen,
+ersetzt aber keine reale pCloud-Freigabe oder ChatGPT-/Claude-Abnahme.
 
 ```sh
 make check       # Build, Race-Tests, vet, Module, Protokoll-Smoke-Test
@@ -126,5 +162,6 @@ Docker-Container. Details: [Testnachweis](docs/verification.md),
 Projektstruktur: `cmd/` enthält Server, OAuth- und Upload-Helfer;
 `internal/config` Konfiguration, `model` Datentypen, `netguard` Netzwerkgrenzen,
 `pcloud` den Provider-Adapter, `policy` die Zugriffsregeln, `service` die
-Anwendungsfälle, `server` die MCP-Tools und `remote` HTTP/OAuth. Transport,
+Anwendungsfälle, `server` die MCP-Tools, `remote` HTTP/OAuth,
+`onboarding` die gehostete Freigabe und `credential` verschlüsselte Zugangspakete. Transport,
 Policy und pCloud-Adapter bleiben getrennt.
