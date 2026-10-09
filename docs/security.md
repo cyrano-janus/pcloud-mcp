@@ -93,3 +93,19 @@ umgedeutet.
 - [Umbenennen](https://docs.pcloud.com/methods/file/renamefile.html)
 - [Textdateien](https://docs.pcloud.com/methods/streaming/gettextfile.html)
 - [MCP-Spezifikation 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28)
+
+## Gehostete pCloud-Einrichtung
+
+Der neue optionale Einrichtungsendpunkt nutzt einen unabhängigen Betreiber-
+Einrichtungsschlüssel, exakten Host/Origin, CSRF, Secure-/HttpOnly-Cookie und
+fünfminütige In-Memory-Sitzungen. OAuth-State wird vor dem Austausch atomar
+verbraucht. Die Ergebnis-Seite enthält einen AES-GCM-geschützten Token-Umschlag,
+keinen Klartext-Token. Ein separater zufälliger Schlüssel bleibt in Render;
+beim Laden werden Region und explizite Konto-ID erneut gebunden.
+
+Das Übernehmen des Ciphertexts in Render ist bewusst manuell. Der Dienst erhält
+keinen Render-Verwaltungsschlüssel. Er benötigt auch keine persistente lokale
+Token-Datei, die auf Free-Diensten bei Neustarts verloren gehen könnte.
+Einrichtung ist standardmäßig deaktiviert und ersetzt weder die MCP-OAuth-
+Anmeldung noch die Ordner-Policy. Voraussetzungen, Browser-Schritte und konkrete
+Rest-Risiken stehen in [Gehostete Einrichtung](hosted-pcloud-setup.md).

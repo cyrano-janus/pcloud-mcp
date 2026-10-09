@@ -45,3 +45,29 @@ func TestInvalidPortRejected(t *testing.T) {
 		}
 	}
 }
+
+func TestHostedSetupDisabledByDefault(t *testing.T) {
+	t.Setenv("PCLOUD_SETUP_ENABLED", "")
+	setup, err := setupFromEnv()
+	if err != nil || setup != nil {
+		t.Fatal("setup enabled without configuration")
+	}
+	for _, path := range []string{"/setup/pcloud", "/oauth/pcloud/callback"} {
+		r := httptest.NewRecorder()
+		handler().ServeHTTP(r, httptest.NewRequest("GET", path, nil))
+		if r.Code != 503 {
+			t.Fatal("setup publicly available", path, r.Code)
+		}
+	}
+	t.Setenv("PCLOUD_SETUP_ENABLED", "true")
+	t.Setenv("RENDER", "")
+	if _, err := setupFromEnv(); err == nil {
+		t.Fatal("untrusted host accepted")
+	}
+	t.Setenv("RENDER", "true")
+	t.Setenv("RENDER_EXTERNAL_URL", "https://service.example")
+	t.Setenv("PCLOUD_CLIENT_ID", "")
+	if _, err := setupFromEnv(); err == nil {
+		t.Fatal("incomplete setup enabled")
+	}
+}

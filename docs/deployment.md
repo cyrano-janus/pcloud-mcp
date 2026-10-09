@@ -9,8 +9,10 @@ wenn pCloud- und OAuth-Zugangsdaten vollständig eingerichtet und geprüft sind.
 ## Voraussetzungen und konkrete Einrichtung
 
 1. Render mit GitHub verbinden und den gewünschten Workspace bestätigen.
-2. Eine pCloud-OAuth-App und das eigene pCloud-Konto mit `pcloud-auth` verbinden
-   (siehe README). Konto-ID, Region und erlaubte Ordner-ID festhalten.
+2. Eine pCloud-OAuth-App und das eigene Konto über die
+   [gehostete Einrichtung](hosted-pcloud-setup.md) verbinden. Alternativ bleibt
+   der lokale `pcloud-auth`-Helfer möglich. Konto-ID, Region und erlaubte
+   Ordner-ID festhalten.
 3. Einen OAuth-2.1-Authorization-Server konfigurieren. Er muss Authorization Code
    mit PKCE, passende MCP-Discovery und RFC-7662-Introspection unterstützen.
    Dieser Server stellt keine Tokens aus und enthält keine Login-Oberfläche.
@@ -29,7 +31,8 @@ wenn pCloud- und OAuth-Zugangsdaten vollständig eingerichtet und geprüft sind.
 | `PCLOUD_REGION` | `eu` oder `us`, passend zum pCloud-Konto |
 | `PCLOUD_USER_ID` | Eigene bestätigte numerische Konto-ID |
 | `PCLOUD_ROOT_FOLDER_ID` | Eigener freigegebener Ordner; `0` bedeutet Kontowurzel |
-| `PCLOUD_ACCESS_TOKEN` | pCloud-OAuth-Zugangstoken |
+| `PCLOUD_CREDENTIAL_ENVELOPE` und `PCLOUD_TOKEN_ENCRYPTION_KEY` | Verschlüsseltes Paket und separater Schlüssel aus gehosteter Einrichtung |
+| `PCLOUD_ACCESS_TOKEN` | Alternative: direktes pCloud-OAuth-Zugangstoken; nicht zusätzlich zum Paket setzen |
 | `PCLOUD_MCP_OAUTH_ISSUER` | Exakte HTTPS-Issuer-URL |
 | `PCLOUD_MCP_INTROSPECTION_URL` | HTTPS-Endpunkt auf demselben Host wie der Issuer |
 | `PCLOUD_MCP_OAUTH_CLIENT_ID` | Client-ID des Resource Servers für Introspection |

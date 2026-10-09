@@ -1,5 +1,5 @@
-# Safe M0b deployment. This service is a health endpoint only.
-# /mcp explicitly returns 503 until OAuth, pCloud and policy checks are implemented.
+# Readiness service with explicitly disabled hosted provider onboarding.
+# /mcp stays 503 until the protected transport is configured and verified.
 services:
   - type: web
     name: pcloud-mcp
@@ -11,3 +11,7 @@ services:
     buildCommand: go build -trimpath -o bin/pcloud-remote ./cmd/pcloud-remote
     startCommand: ./bin/pcloud-remote
     healthCheckPath: /healthz
+
+    envVars:
+      - key: PCLOUD_SETUP_ENABLED
+        value: 'false'

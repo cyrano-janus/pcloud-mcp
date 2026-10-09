@@ -53,6 +53,25 @@ MUTATIONS = [
     ("upload conflict protection removed", "internal/pcloud/client.go",
      '{"renameifexists", "1"}', '{"renameifexists", "0"}',
      "./internal/pcloud", "TestMultipartSafety"),
+    ("hosted setup secret removed", "internal/onboarding/http.go",
+     '!equal(r.PostForm.Get("setup_secret"), h.cfg.SetupSecret)', 'false',
+     "./internal/onboarding", "TestSetupRequiresSecretCSRFAndOrigin"),
+    ("hosted setup CSRF removed", "internal/onboarding/http.go",
+     '!equal(r.PostForm.Get("csrf"), s.csrf)', 'false',
+     "./internal/onboarding", "TestSetupRequiresSecretCSRFAndOrigin"),
+    ("hosted setup origin removed", "internal/onboarding/http.go",
+     'origin != h.cfg.Origin', 'false',
+     "./internal/onboarding", "TestSetupRequiresSecretCSRFAndOrigin"),
+    ("hosted setup expiry removed", "internal/onboarding/http.go",
+     '!h.now().Before(s.expires)', 's.expires.IsZero()',
+     "./internal/onboarding", "TestCallbackBrowserStateExpiryAndReplay"),
+    ("hosted callback replay allowed", "internal/onboarding/http.go",
+     'delete(h.sessions, id)\n\th.mu.Unlock()', 'h.mu.Unlock()',
+     "./internal/onboarding", "TestCallbackBrowserStateExpiryAndReplay"),
+    ("encrypted credential owner removed", "internal/config/runtime.go",
+     'encryptedOwner != 0 && cfg.UserID != encryptedOwner', 'encryptedOwner < 0',
+     "./internal/config", "TestEncryptedCredentialOwnerBinding"),
+
 ]
 
 def test(work, package, case):

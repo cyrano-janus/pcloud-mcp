@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"github.com/cyrano-janus/pcloud-mcp/internal/credential"
+	"strings"
+	"testing"
+)
 
 func TestRuntimeConfig(t *testing.T) {
 	base := map[string]string{"PCLOUD_ACCESS_TOKEN": "test-value", "PCLOUD_REGION": "eu", "PCLOUD_USER_ID": "7", "PCLOUD_ROOT_FOLDER_ID": "10"}
@@ -46,5 +50,33 @@ func TestRenderProxyRequiresExplicitRuntime(t *testing.T) {
 	values["PCLOUD_MCP_TLS_PROXY"] = "arbitrary"
 	if _, err := load(); err == nil {
 		t.Fatal("unknown proxy accepted")
+	}
+}
+
+func TestEncryptedCredentialOwnerBinding(t *testing.T) {
+	key := strings.Repeat("ab", 32)
+	encrypted, err := credential.Seal(key, credential.Data{Token: "secret", Region: "eu", UserID: 7})
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := map[string]string{"PCLOUD_CREDENTIAL_ENVELOPE": encrypted, "PCLOUD_TOKEN_ENCRYPTION_KEY": key, "PCLOUD_REGION": "eu", "PCLOUD_USER_ID": "7", "PCLOUD_ROOT_FOLDER_ID": "10"}
+	load := func() (Config, error) {
+		return Load(func(k string) (string, bool) { v, ok := values[k]; return v, ok })
+	}
+	cfg, err := load()
+	if err != nil || cfg.AccessToken != "secret" {
+		t.Fatal("encrypted config failed", err)
+	}
+	for _, item := range []struct{ key, value string }{{"PCLOUD_USER_ID", "8"}, {"PCLOUD_REGION", "us"}, {"PCLOUD_TOKEN_ENCRYPTION_KEY", strings.Repeat("cd", 32)}, {"PCLOUD_ACCESS_TOKEN", "other"}} {
+		saved, ok := values[item.key]
+		values[item.key] = item.value
+		if _, err := load(); err == nil {
+			t.Fatal("credential binding bypassed", item.key)
+		}
+		if ok {
+			values[item.key] = saved
+		} else {
+			delete(values, item.key)
+		}
 	}
 }

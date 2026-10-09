@@ -29,6 +29,18 @@ einen neuen Namen; maßgeblich ist der zurückgegebene Name. Umbenennen, Verschi
 Überschreiben und Löschen sind nicht freigeschaltet. Eine vorgeschaltete
 Existenzprüfung allein würde konkurrierendes Überschreiben nicht verhindern.
 
+## pCloud über Render verbinden
+
+Die pCloud-Freigabe kann jetzt über den gehosteten Dienst erfolgen, ohne lokalen
+Helfer. Der HTTPS-Callback ist `/oauth/pcloud/callback`, die Einrichtung beginnt
+unter `/setup/pcloud`. Sie ist standardmäßig gesperrt und benötigt eigene
+Einrichtungsschlüssel sowie die pCloud-App-Konfiguration. Das Zugangstoken wird
+als verschlüsseltes Paket zur geschützten Übernahme in Render bereitgestellt.
+
+Die konkreten Schritte und verbleibenden Grenzen stehen in
+[Gehostete pCloud-Einrichtung](docs/hosted-pcloud-setup.md). Die externe OAuth-
+Anmeldung des MCP-Clients bleibt separat; Dateioperationen sind noch nicht live.
+
 ## Lokal starten
 
 ```sh
@@ -102,7 +114,7 @@ mit einem Ordnerbaum gebunden; dies ist kein mandantenfähiger Dienst.
 
 ```sh
 make check       # Build, Race-Tests, vet, Module, Protokoll-Smoke-Test
-make fuzz        # vier begrenzte Fuzz-Ziele
+make fuzz        # sechs begrenzte Fuzz-Ziele
 make mutations   # gezielte sicherheitsrelevante Mutationen
 make security    # installierte govulncheck- und gitleaks-Werkzeuge
 ```

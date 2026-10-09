@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"github.com/cyrano-janus/pcloud-mcp/internal/credential"
 	"io"
 	"os"
 	"strconv"
@@ -18,7 +19,27 @@ func loadRuntime(cfg Config, lookup func(string) (string, bool)) (Config, error)
 	if err != nil {
 		return cfg, err
 	}
+	var encryptedOwner int64
 	cfg.Region = get("PCLOUD_REGION")
+	if envelope, set := lookup("PCLOUD_CREDENTIAL_ENVELOPE"); set {
+		if cfg.AccessToken != "" {
+			return cfg, errors.New("configure an encrypted credential or a plaintext token, not both")
+		}
+		key, err := secret("PCLOUD_TOKEN_ENCRYPTION_KEY", lookup)
+		if err != nil {
+			return cfg, err
+		}
+		data, err := credential.Open(key, envelope)
+		if err != nil {
+			return cfg, errors.New("encrypted pCloud credential unavailable or invalid")
+		}
+		if cfg.Region != "" && cfg.Region != data.Region {
+			return cfg, errors.New("encrypted credential region mismatch")
+		}
+		cfg.AccessToken = data.Token
+		cfg.Region = data.Region
+		encryptedOwner = data.UserID
+	}
 	cfg.Transport = get("PCLOUD_MCP_TRANSPORT")
 	if cfg.Transport == "" {
 		cfg.Transport = "stdio"
@@ -39,6 +60,9 @@ func loadRuntime(cfg Config, lookup func(string) (string, bool)) (Config, error)
 		cfg.UserID, err = strconv.ParseInt(get("PCLOUD_USER_ID"), 10, 64)
 		if err != nil || cfg.UserID <= 0 {
 			return cfg, errors.New("positive PCLOUD_USER_ID required")
+		}
+		if encryptedOwner != 0 && cfg.UserID != encryptedOwner {
+			return cfg, errors.New("encrypted credential owner mismatch")
 		}
 		cfg.RootFolderID, err = strconv.ParseInt(get("PCLOUD_ROOT_FOLDER_ID"), 10, 64)
 		if err != nil || cfg.RootFolderID < 0 {

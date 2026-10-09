@@ -26,3 +26,15 @@ func TestCallbackBinding(t *testing.T) {
 		t.Fatal("duplicate state accepted")
 	}
 }
+
+func FuzzOAuthCallback(f *testing.F) {
+	f.Add("expected", "code", "eapi.pcloud.com", "2")
+	f.Add("wrong", "code", "api.pcloud.com", "1")
+	f.Fuzz(func(t *testing.T, state, code, host, location string) {
+		q := url.Values{"state": {state}, "code": {code}, "hostname": {host}, "locationid": {location}}
+		region, _, err := ValidateCallback(q, "expected")
+		if err == nil && (state != "expected" || code == "" || len(code) > 4096 || !((region == "eu" && host == "eapi.pcloud.com" && location == "2") || (region == "us" && host == "api.pcloud.com" && location == "1"))) {
+			t.Fatal("invalid callback accepted")
+		}
+	})
+}

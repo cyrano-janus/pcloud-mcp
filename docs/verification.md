@@ -53,3 +53,21 @@ Commits unter [Actions](https://github.com/cyrano-janus/pcloud-mcp/actions) prü
 
 Diese Dokumentation behauptet weder vollständige MCP-Konformität noch
 Produktionsreife. Sie ersetzt nicht die offenen Live-Prüfungen.
+
+## Ergänzung: gehostete pCloud-Einrichtung
+
+Die Tests für den Token-Umschlag und den gehosteten Ablauf wurden zunächst ohne
+Implementierung ausgeführt und schlugen wegen fehlender Typen/Funktionen fehl.
+Nach Umsetzung bestanden Build, Race-Tests, vet und Module-Prüfung. Kontrollierte
+Provider-Doubles prüfen den Browser-/State-/Owner-Ablauf ohne echte Kontofreigabe.
+
+Sechs zusätzliche Mutationen wurden durch Testfehler erkannt: Entfall von
+Einrichtungsschlüssel, CSRF, Origin-Prüfung, Ablauf, einmaliger Callback-Verwendung
+und verschlüsselter Konto-ID-Bindung. Insgesamt sind es jetzt 20 gezielte Mutationen.
+Zusätzliche Fuzz-Ziele prüfen Zugangspaket und OAuth-Callback jeweils 30 Sekunden.
+Die CI wiederholt diese Prüfungen, einschließlich Vulnerability- und Secret-Scans.
+
+Auf Render wird `PCLOUD_SETUP_ENABLED=false` ausdrücklich gesetzt. Solange App-
+Credentials und unabhängige Schlüssel fehlen, sind die gehostete Einrichtung und
+MCP-Dateioperationen gesperrt. Ein echter pCloud-Login ist deshalb noch nicht als
+bestanden dokumentiert.

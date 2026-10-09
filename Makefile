@@ -12,6 +12,8 @@ fuzz:
 	go test ./internal/policy -run='^$$' -fuzz=FuzzName -fuzztime=30s -parallel=2
 	go test ./internal/pcloud -run='^$$' -fuzz=FuzzDecode -fuzztime=30s -parallel=2
 	go test ./internal/netguard -run='^$$' -fuzz=FuzzPublicIP -fuzztime=30s -parallel=2
+	go test ./internal/credential -run='^$$' -fuzz=FuzzEnvelope -fuzztime=30s -parallel=2
+	go test ./internal/pcloud -run='^$$' -fuzz=FuzzOAuthCallback -fuzztime=30s -parallel=2
 mutations:
 	python3 scripts/mutation_test.py
 security:
