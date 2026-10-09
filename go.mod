@@ -4,7 +4,10 @@ go 1.26.0
 
 toolchain go1.26.9
 
-require github.com/modelcontextprotocol/go-sdk v1.8.0
+require (
+	github.com/modelcontextprotocol/go-sdk v1.8.0
+	golang.org/x/time v0.15.0
+)
 
 require (
 	github.com/google/jsonschema-go v0.4.3 // indirect
@@ -14,5 +17,4 @@ require (
 	golang.org/x/oauth2 v0.35.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.44.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
 )

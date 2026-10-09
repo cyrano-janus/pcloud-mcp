@@ -1,34 +1,55 @@
-# M0a local verification
+# Nachweis für 0.3.0-rc.1
 
-Verified on 2026-10-09 with Go 1.26.9 on Linux amd64 and MCP Go SDK v1.8.0.
-Tests were first run before implementation and failed for missing `config.Load`
-and the missing executable. The completed implementation passed:
+Lokal geprüft am 9. Oktober 2026 mit Go 1.26.9, Linux amd64 und MCP-Go-SDK v1.8.0.
 
-| Check | Observed result |
+| Prüfung | Beobachtetes Ergebnis |
 | --- | --- |
-| Build with `-trimpath` | Binary built |
-| `go test -race -count=1 -timeout=90s ./...` | Configuration and process integration tests passed |
-| `go vet ./...` | Passed |
-| `go mod verify` | All modules verified |
-| Configuration fuzzing, 30 seconds, two workers | Passed; 2,484,907 executions in this run |
-| Targeted mutations | All three killed by test failures, not compilation errors |
-| `scripts/smoke_test.py` against built binary | Discovery returned identity `pcloud-mcp`, version `0.2.0-m0a`, supported MCP version `2026-07-28` |
-| Module-level `govulncheck` | No vulnerabilities found after dependency update |
-| Gitleaks working-directory and existing-history scans | No leaks found |
+| Build von Server, OAuth- und Upload-Helfer | Erfolgreich |
+| `go test -race -count=1 -timeout=90s ./...` | Erfolgreich |
+| Separat integrierter Render-Bereitschaftsdienst, Race-Tests | Erfolgreich; `/mcp` bleibt 503 |
+| `go vet ./...`, `go mod verify`, `go mod tidy` | Erfolgreich |
+| Subprozess-Smoke-Test | Discovery meldet `pcloud-mcp`, `0.3.0-rc.1`, MCP `2026-07-28` |
+| Echte SDK-Client-/Server-Integration mit kontrolliertem Provider-Double | Alle neun Tools, Ergebnisse und schreibgeschützte Registrierung geprüft |
+| HTTP-/OAuth-Integration | Gültiger Besitzer gebunden, Scope durchgereicht; fehlender Lese-Scope abgewiesen |
+| Fuzzing, jeweils 30 Sekunden, zwei Worker | Config, Dateinamen, Provider-JSON und öffentliche IP-Adressen bestanden |
+| Gezielte Mutationstests | 14 von 14 durch Testfehler erkannt, nicht durch Kompilierungsfehler |
+| `govulncheck ./...` und Modulscan | Keine bekannten Schwachstellen gemeldet |
+| Gitleaks, Arbeitsverzeichnis und Git-Historie | Keine Secrets gefunden |
 
-The module scan originally reported GO-2026-5024 in `golang.org/x/sys v0.41.0`,
-a Windows issue not called by this Linux build. The dependency was explicitly
-updated to the reported fixed version v0.44.0; the MCP SDK remains v1.8.0.
+Fuzz-Laufzahlen dieses Durchlaufs: Config 965864, Dateinamen 839906,
+Provider-JSON 69478, öffentliche IP-Adressen 322779. Zahlen sind maschinenabhängig
+und keine Akzeptanzschwelle.
 
-The transport tests use raw JSON-RPC against a subprocess, not an in-process
-mock. For an unknown modern version, they use `2099-01-01`. A pre-modern version
-such as `1900-01-01` follows different SDK compatibility behavior and is not
-claimed to have passed the modern unsupported-version test.
+Die Mutationen entfernen oder verändern: Config-Validierung, Maximalgrenze,
+Transportgrenze, Besitzerbindung, Schreibschalter, Verbot destruktiver Aktionen,
+Ordnergrenze, Dateieigentümerschaft, Upload-Hash, OAuth-Audience, Issuer, Subject,
+Copy-Überschreibschutz und Upload-Konfliktschutz. Dies ist ein gezielter Nachweis,
+kein umfassender Mutation-Score oder Sicherheitsbeweis.
 
-Fuzz execution counts are machine-dependent and not acceptance thresholds.
-The mutation set covers configuration validation, its maximum boundary, and
-the transport limit. It is not a general mutation score or authorization proof.
+Weitere Negativtests prüfen begrenzte Suche, Datums-/Größenfilter, Text- und
+Upload-Limits, nicht freigegebene Einträge, ausfallendes Audit und unplausible
+Schreibantworten. Provider-Adapter-Tests kontrollieren POST-Parameter,
+Multipart-Reihenfolge und Fehlerredaktion. Sie benutzen kontrollierte HTTP-
+Transporte; dadurch werden keine echten pCloud-Dateien angelegt.
 
-Full conformance, real ChatGPT/Claude interoperability, OAuth, pCloud API calls,
-tenant isolation and file-operation security are not yet verified. Hosted CI
-results must be checked independently after the commit is published.
+## Akzeptanzkriterien dieses Schritts
+
+- Reproduzierbar bauen; stdio bleibt protokollrein; Prozess beendet sich kontrolliert.
+- Ohne Credentials keine Datei-Tools, ohne vollständiges OAuth kein HTTP-Dateizugriff.
+- Nur die konfigurierte Identität und ihr freigegebener Ordnerbaum sind zugelassen.
+- Lesen ist standardmäßig aktiv, Schreiben ausdrücklich optional und auditiert.
+- Kein exponierter Lösch-, Rename-, Move- oder Überschreibpfad.
+- Upload-Bytes werden begrenzt und geprüft; Namenskonflikte überschreiben keine Datei.
+- Die CI wiederholt Prüfungen und baut zusätzlich den Docker-Container.
+
+## Noch nicht nachgewiesen
+
+Echte pCloud-OAuth-Freigabe und Provider-Aufrufe, ein Login über einen konkreten
+externen Authorization Server, Widerruf im realen Betrieb, End-to-End-Nutzung
+mit ChatGPT/Claude und das vollständige geschützte Render-Deployment benötigen
+die zugehörigen Konten und Konfiguration. Lokaler Docker-Daemon ist nicht vorhanden;
+Container-Build und Start erfolgen in GitHub Actions. Den Status des konkreten
+Commits unter [Actions](https://github.com/cyrano-janus/pcloud-mcp/actions) prüfen.
+
+Diese Dokumentation behauptet weder vollständige MCP-Konformität noch
+Produktionsreife. Sie ersetzt nicht die offenen Live-Prüfungen.

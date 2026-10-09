@@ -1,55 +1,95 @@
-# M0a security boundaries and OAuth concept
+# Sicherheitsgrenzen des Release Candidates
 
-## Current implementation
+## Identität und Policy
 
-M0a is a client-launched, local stdio process. It opens no HTTP listener, makes
-no pCloud calls, accepts no credentials and registers no tools, resources or
-prompts. It is a protocol foundation, not a file-management release.
+Eine Instanz bindet genau eine numerische pCloud-Konto-ID, einen erlaubten
+Ordnerbaum und bei HTTP ein einziges OAuth-Subject. Vor jeder Operation wird die
+pCloud-Identität geprüft. Fehlender Principal, fremde Eigentümerschaft und Objekte
+außerhalb des konfigurierten Baums werden abgewiesen. Geteilte fremde Dateien
+sind ausgeschlossen, auch wenn pCloud technisch Zugriff erlauben würde.
 
-The local process owner's OS permissions are the trust boundary. Only launch
-the executable from a trusted local client and protect the binary and client
-configuration from modification by other users. stdio is not remote-user
-authentication. Do not expose the process through an unauthenticated bridge.
+Die Ebenen sind getrennt: HTTP validiert die Client-Identität und Scopes;
+`policy` entscheidet über Operationen und Schreibfreigabe; `service` prüft
+Eigentümerschaft und Ordnerzugehörigkeit; `pcloud` spricht feste Provider-Endpunkte
+an. Neue, unbekannte Operationen sind standardmäßig verboten. Ohne
+`PCLOUD_ENABLE_WRITES=true` werden Schreibtools nicht registriert.
 
-## Threat model
+## Netzwerk und Secrets
 
-| Threat | Current control | Remaining work |
-| --- | --- | --- |
-| Oversized protocol input | SDK frame cap; default 1 MiB, configurable from 1024 bytes to 1 MiB; boundary tests | Concurrency, request budgets and response limits with real tools |
-| Untrusted configuration | Strict integer/range validation; values omitted from errors | Secret-store integration with credentials |
-| Untrusted protocol errors | Process-level diagnostics omit SDK error details; stdout reserved for MCP | Review and redact all future service/API errors |
-| Unauthorized file changes | No tools registered; destructive tool call test fails | Identity, ownership and default-deny policy before M1 |
-| Dependency compromise | SDK pin, go.sum verification, pinned CI actions/tools, vulnerability and secret scans | Regular reviewed updates; scans do not prove absence of vulnerabilities |
-| Local malicious client | No pCloud capability or credentials present | OS isolation; limits do not prevent every CPU/resource exhaustion attack |
+pCloud-Requests gehen ausschließlich an `api.pcloud.com` oder `eapi.pcloud.com`.
+Tokens stehen in POST-Bodies, nicht in URLs. Provider-Fehlertexte werden nicht
+ungefiltert ausgegeben. HTTP-Redirects und Umgebungs-Proxys sind deaktiviert.
+DNS-Ergebnisse werden gegen private, lokale und reservierte Adressen geprüft;
+der Dialer verwendet anschließend die geprüfte IP ohne erneute Auflösung.
+TLS prüft weiterhin den ursprünglichen Host. Keep-alive ist deaktiviert, weil
+pCloud persistente Verbindungen an die zuerst authentifizierte Identität binden kann.
 
-No protection against multi-tenant attacks, SSRF, replay or token theft is
-claimed for M0a: their corresponding network and credential paths do not exist.
+Secrets kommen aus Umgebungsvariablen oder ausschließlich gesetzten `_FILE`-
+Varianten. Dateien müssen regulär, begrenzt und gegen fremden Zugriff geschützt
+sein. Tokens, Inhalte und Dateinamen erscheinen nicht im eigenen Audit-Log.
+Der Container enthält keine Secrets. Ein pCloud-Token kann beim Provider weiter
+reichende Rechte besitzen als dieser Server erlaubt; die Ordner-Policy ersetzt
+keine eingeschränkten Provider-Credentials.
 
-## Remote OAuth design obligations (not implemented)
+## HTTP und OAuth
 
-Before adding Streamable HTTP, specify and test:
+Remote-Zugriffe benötigen HTTPS und einen externen Authorization Server.
+Validiert werden aktiver Zustand, Issuer, Audience, Subject, Zeitgrenzen und
+Scopes über Introspection bei jedem Aufruf. Details stehen im
+[Deployment-Vertrag](deployment.md). Fehlende oder widersprüchliche Konfiguration
+verhindert den Start. pCloud-Zugangsdaten werden niemals an den Client durchgereicht.
 
-1. TLS termination, trusted proxy/host configuration and MCP authorization
-   against specification 2026-07-28.
-2. The authorization-server choice, protected-resource metadata and correct
-   resource/audience binding. MCP credentials and pCloud credentials are
-   separate; do not pass arbitrary incoming MCP tokens through to pCloud.
-3. Verified pCloud EU/US endpoints, actual OAuth/scopes semantics and grant
-   lifecycle from primary documentation. These facts remain open in SPEC.md.
-4. PKCE S256, redirect allowlists, CSRF/state protection, expiry and revocation;
-   persistent grant/refresh state where required. Do not claim rotation without
-   replay detection and invalidation.
-5. Per-user credential, authorization and audit isolation. Never accept a
-   client-supplied user ID as proof of identity.
+Der Resource-Host muss exakt passen; ein vorhandener Origin muss die öffentliche
+Origin treffen. Query-Parameter und mehrdeutige Authorization-Header werden
+abgewiesen. HTTP- und Tool-Aufrufe haben Raten-, Parallelitäts-, Größen- und
+Zeitgrenzen. Render-Proxy-Modus ist ausdrücklich aktiviert und setzt die
+Plattform-TLS-Grenze voraus. Außerhalb dessen erfordert öffentliches HTTP eigene
+TLS-Zertifikate; Plaintext ist nur auf explizitem Loopback zulässig.
 
-Future request path: verified identity -> policy enforcement -> tool handler
--> domain service -> pCloud API client. A handler must never call pCloud HTTP
-directly. Interfaces and ownership checks must be implemented with the first
-real use case, with TDD and policy/authorization mutations.
+## Dateioperationen
 
-## Release boundary
+Text ist nicht vertrauenswürdiger Inhalt. Der Server markiert ihn entsprechend;
+der Client muss ihn als Daten behandeln und darf Anweisungen darin nicht befolgen.
+Lesen ist auf ausgewählte Textendungen und 128 KiB beschränkt. Suchläufe begrenzen
+Tiefe, Ordner, Einträge, Ergebnisse und Metadaten-Aufrufe und melden `truncated`.
+Ordnerantworten oberhalb der Provider-Antwortgrenze von 4 MiB schlagen fehl.
+Offset-Seiten sind keine konsistente Momentaufnahme.
 
-The current tests are bounded application protocol regression tests, not a full
-MCP conformance assessment or ChatGPT/Claude compatibility certification.
-Real client interoperability and security acceptance remain required by SPEC.md.
-No external hosting provider has been selected in the repository.
+Uploads akzeptieren nur übergebene Base64-Bytes bis 4 MiB mit passendem SHA-256.
+Dieser Hash prüft die Übergabe an den Server; er ist keine unabhängige
+Rücklese-Verifikation des gespeicherten pCloud-Inhalts. Kopieren verwendet
+`noover=1`, Upload `renameifexists=1` und `nopartial=1`. Mutationsantworten müssen
+eigene Objekte am erwarteten Ziel mit gültiger Metadatenform enthalten.
+
+Umbenennen und Verschieben bleiben deaktiviert, weil die dokumentierte
+Rename-Operation Zielkonflikte überschreiben kann. Löschen und Überschreiben
+sind ohne eigenen bestätigten Workflow grundsätzlich verboten. Es gibt keine
+Behauptung, ein Modell könne seine eigene Sicherheitsbestätigung liefern.
+
+Jeder zugelassene Schreibversuch protokolliert vor dem Provider-Aufruf einen
+Start und danach ein Ergebnis mit gemeinsamer Request-ID. Scheitert das erste
+Audit-Schreiben, erfolgt keine Mutation. Scheitert das letzte Schreiben oder
+ist die Provider-Antwort unklar, wird kein sicherer Erfolg behauptet. Automatische
+Wiederholung oder Rollback finden nicht statt. stderr allein ist weder dauerhaft
+noch manipulationsgeschützt; produktive Aufbewahrung ist Betreiberaufgabe.
+
+## Verbleibende Grenzen
+
+Identitäts-, Metadaten- und Dateioperationen sind separate Provider-Aufrufe.
+Gleichzeitige externe Verschiebungen oder Änderungen können daher zwischen
+Prüfung und Zugriff liegen; pCloud bietet hier keine atomare Ordner-Policy-
+Transaktion. Keine vollständige TOCTOU-Isolation, Mandantenfähigkeit oder
+Produktionsreife wird behauptet. Für diese Zusagen sind weitere Architekturarbeit
+und echte Provider-/Client-Tests nötig. Der OAuth-Helfer benötigt eine vertrauliche
+pCloud-App; der dokumentierte Provider-Flow wird nicht als PKCE-/Refresh-Flow
+umgedeutet.
+
+## Primärquellen
+
+- [pCloud allgemeine API-Parameter](https://docs.pcloud.com/methods/intro/parameters.html)
+- [pCloud OAuth](https://docs.pcloud.com/methods/oauth_2.0/)
+- [Kopieren](https://docs.pcloud.com/methods/file/copyfile.html)
+- [Upload](https://docs.pcloud.com/methods/file/uploadfile.html)
+- [Umbenennen](https://docs.pcloud.com/methods/file/renamefile.html)
+- [Textdateien](https://docs.pcloud.com/methods/streaming/gettextfile.html)
+- [MCP-Spezifikation 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28)

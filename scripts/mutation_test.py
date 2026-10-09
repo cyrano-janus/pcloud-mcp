@@ -12,14 +12,47 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 MUTATIONS = [
     ("config validation removed", "internal/config/config.go",
-     "err != nil || n < MinFrameBytes || n > DefaultMaxFrameBytes",
+     "err != nil || n < MinFrameBytes || n > MaxFrameBytesLimit",
      "false", "./internal/config", "TestLoad"),
     ("maximum boundary shifted", "internal/config/config.go",
-     "n > DefaultMaxFrameBytes", "n >= DefaultMaxFrameBytes",
+     "n > MaxFrameBytesLimit", "n >= MaxFrameBytesLimit",
      "./internal/config", "TestLoad"),
     ("transport limit increased by one", "internal/server/server.go",
      "MaxLineLength: cfg.MaxFrameBytes", "MaxLineLength: cfg.MaxFrameBytes + 1",
      "./internal/server", "TestFrameBoundary"),
+    ("identity binding removed", "internal/policy/policy.go",
+     "actor.UserID != p.UserID || ", "",
+     "./internal/policy", "TestAuthorization"),
+    ("write switch removed", "internal/policy/policy.go",
+     "p.EnableWrites && actor.Write", "actor.Write",
+     "./internal/policy", "TestAuthorization"),
+    ("destructive operation allowed", "internal/policy/policy.go",
+     'case "whoami",', 'case "delete_file", "whoami",',
+     "./internal/policy", "TestAuthorization"),
+    ("root restriction removed", "internal/service/service.go",
+     "current == s.root", "true",
+     "./internal/service", "TestScopeAndOwnership"),
+    ("file ownership removed", "internal/service/service.go",
+     "!m.IsMine || m.IsFolder", "m.IsFolder",
+     "./internal/service", "TestScopeAndOwnership"),
+    ("upload integrity removed", "internal/service/service.go",
+     "!strings.EqualFold(actual, digest)", "false",
+     "./internal/service", "TestUploadIntegrity"),
+    ("audience binding removed", "internal/remote/http.go",
+     "!slices.Contains(info.Audience, cfg.PublicURL)", "false",
+     "./internal/remote", "TestTokenValidation"),
+    ("issuer binding removed", "internal/remote/http.go",
+     "info.Issuer != cfg.Issuer || ", "",
+     "./internal/remote", "TestTokenValidation"),
+    ("subject binding removed", "internal/remote/http.go",
+     "info.Subject != cfg.OAuthSubject || ", "",
+     "./internal/remote", "TestTokenValidation"),
+    ("copy no-overwrite removed", "internal/pcloud/client.go",
+     '"noover": {"1"}', '"noover": {"0"}',
+     "./internal/pcloud", "TestTokenAndCopySafety"),
+    ("upload conflict protection removed", "internal/pcloud/client.go",
+     '{"renameifexists", "1"}', '{"renameifexists", "0"}',
+     "./internal/pcloud", "TestMultipartSafety"),
 ]
 
 def test(work, package, case):
@@ -30,7 +63,7 @@ def test(work, package, case):
 for name, filename, before, after, package, case in MUTATIONS:
     with tempfile.TemporaryDirectory(prefix="pcloud-mutation-") as tmp:
         work = pathlib.Path(tmp) / "repo"
-        shutil.copytree(ROOT, work, ignore=shutil.ignore_patterns(".git", "bin", "__pycache__"))
+        shutil.copytree(ROOT, work, ignore=shutil.ignore_patterns(".git", "bin", "__pycache__", "secrets", ".env", ".env.*"))
         baseline = test(work, package, case)
         if baseline.returncode:
             raise SystemExit("Baseline failed:\n" + baseline.stdout + baseline.stderr)

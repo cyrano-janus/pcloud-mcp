@@ -2,7 +2,7 @@
 
 **Version:** 0.2.0-draft  
 **Stand:** 2026-10-08  
-**Status:** Entwurf; noch keine Implementierung oder produktive Freigabe
+**Status:** Produktspezifikation im Entwurf; Teilimplementierung 0.3.0-rc.1 vorhanden, keine produktive Freigabe. Implementierter Umfang und offene Nachweise: [README](README.md).
 
 ## 1. Ziel
 

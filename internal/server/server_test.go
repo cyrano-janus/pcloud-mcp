@@ -99,7 +99,7 @@ func exchange(t *testing.T, frame []byte) (map[string]any, string) {
 func cleanEnv() []string {
 	var env []string
 	for _, entry := range os.Environ() {
-		if !strings.HasPrefix(entry, "PCLOUD_MCP_") {
+		if !strings.HasPrefix(entry, "PCLOUD_") {
 			env = append(env, entry)
 		}
 	}

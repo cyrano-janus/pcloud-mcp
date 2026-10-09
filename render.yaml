@@ -7,7 +7,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    autoDeploy: true
+    autoDeployTrigger: checksPass
     buildCommand: go build -trimpath -o bin/pcloud-remote ./cmd/pcloud-remote
     startCommand: ./bin/pcloud-remote
     healthCheckPath: /healthz

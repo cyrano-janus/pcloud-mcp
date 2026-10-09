@@ -2,3 +2,8 @@
 *.test
 coverage.out
 __pycache__/
+/secrets/
+.env
+.env.*
+*.pem
+*.key

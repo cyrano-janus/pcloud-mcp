@@ -1,96 +1,118 @@
 # pcloud-mcp
 
-Sicherer MCP-Server in Go für pCloud: Dateien über ChatGPT, Claude und andere MCP-Clients verwalten – lokal oder remote.
+MCP-Server in Go für den kontrollierten Zugriff auf das eigene pCloud-Konto.
 
-**Implementierungsstatus:** 0.2.0-m0a – lokales stdio-Protokollfundament.
-Die Produktspezifikation bleibt **0.2.0-draft**. pCloud-Funktionen und Remote-
-Hosting sind noch nicht implementiert oder produktiv freigegeben.
+**Status: 0.3.0-rc.1.** Implementiert sind lokale Nutzung über stdio und ein
+OAuth-geschützter HTTP-Transport. Die Produktspezifikation bleibt
+[0.2.0-draft](SPEC.md). Ein echter pCloud-Konto- und ChatGPT/Claude-End-to-End-Test
+steht noch aus; dieser Release Candidate ist keine produktive Freigabe.
 
-## Jetzt nutzbar: lokaler MCP-Protokollserver
+Go **1.26.9**, offizielles **MCP-Go-SDK v1.8.0**, MCP **2026-07-28**.
+Der Server aktiviert ausschließlich diese MCP-Version. Ältere Clients sind damit
+nicht automatisch kompatibel. Versionsstand zuletzt am 9. Oktober 2026 geprüft.
 
-Voraussetzung: Go **1.26.9**, für die Python-Testhilfe zusätzlich Python 3.
-Das offizielle MCP-Go-SDK ist auf **v1.8.0** gepinnt. Der Server unterstützt in
-diesem ersten Schritt ausschließlich MCP **2026-07-28**.
+## Funktionen
+
+| Tool | Verhalten |
+| --- | --- |
+| `whoami` | Prüft und liefert die konfigurierte Kontoidentität |
+| `list_folder` | Eigene Einträge im erlaubten Ordnerbaum, begrenzte Seiten |
+| `get_file_info` | Metadaten einer eigenen Datei |
+| `search_files` | Suche nach Name, relativem Pfad, Endung, MIME-Typ, Größe und Datum |
+| `read_text_file` | Unterstützte Textdateien bis 128 KiB; Inhalt als nicht vertrauenswürdig markiert |
+| `create_folder` | Optional: neuen Ordner erstellen |
+| `copy_file` | Optional: kopieren mit pCloud-seitigem Überschreibschutz |
+| `upload_file`, `save_artifact` | Optional: übergebene Bytes bis 4 MiB mit SHA-256-Prüfung speichern |
+
+Schreiben ist standardmäßig deaktiviert. Bei Upload-Namenskonflikten wählt pCloud
+einen neuen Namen; maßgeblich ist der zurückgegebene Name. Umbenennen, Verschieben,
+Überschreiben und Löschen sind nicht freigeschaltet. Eine vorgeschaltete
+Existenzprüfung allein würde konkurrierendes Überschreiben nicht verhindern.
+
+## Lokal starten
 
 ```sh
-go mod download
-go build -trimpath -o bin/pcloud-mcp ./cmd/pcloud-mcp
-```
-
-Ein lokaler MCP-Client startet `bin/pcloud-mcp` als stdio-Unterprozess. Verwende
-in seiner Konfiguration den absoluten Pfad des Binary. Ein Client muss die
-MCP-Version 2026-07-28 unterstützen; die konkrete Konfigurationsoberfläche hängt
-vom Client ab. Kompatibilität mit ChatGPT oder Claude ist noch nicht nachgewiesen.
-
-Für einen direkten Protokoll-Smoke-Test ohne Zugangsdaten:
-
-```sh
+make build
 python3 scripts/smoke_test.py ./bin/pcloud-mcp
 ```
 
-Die Antwort enthält die Serveridentität und unterstützte Version. stdout bleibt
-dem MCP-Protokoll vorbehalten; Prozessfehler erscheinen auf stderr. Es gibt noch
-keine Datei-Tools, keine pCloud-Verbindung und keinen HTTP-Endpunkt.
-
-`PCLOUD_MCP_MAX_FRAME_BYTES` begrenzt eingehende stdio-Frames. Standard: 1048576
-Bytes (1 MiB), zulässig: 1024 bis 1048576. Leere, nicht numerische oder außerhalb
-des Bereichs liegende Werte verhindern den Start; Werte erscheinen nicht in
-Konfigurationsfehlermeldungen. Das SDK setzt die Transportgrenze um.
-
-## Automatisierte Prüfung
+Ohne Zugangsdaten läuft nur das Protokollfundament, ohne Datei-Tools. Für echte
+pCloud-Nutzung eine eigene vertrauliche pCloud-OAuth-App mit Callback
+`http://127.0.0.1:8976/callback` anlegen. Client-ID und Client-Secret in der lokalen
+Umgebung setzen (`PCLOUD_CLIENT_ID`, `PCLOUD_CLIENT_SECRET` oder
+`PCLOUD_CLIENT_SECRET_FILE`), dann:
 
 ```sh
-go test -race -count=1 -timeout=90s ./...
-go vet ./...
-go mod verify
-go test ./internal/config -run='^$' -fuzz=FuzzConfig -fuzztime=30s -parallel=2
-python3 scripts/mutation_test.py
+./bin/pcloud-auth
 ```
 
-Die Prozessintegrationstests starten ein mit Race Detector gebautes Binary und
-prüfen Discovery ohne Legacy-Handshake, eine unbekannte moderne Version,
-Ablehnung eines nicht registrierten destruktiven Tools, Frames am Limit und
-Limit +1, EOF, Signalbehandlung und Konfigurationsfehler ohne Wertoffenlegung.
-Die Mutationstesthilfe prüft drei konkrete Änderungen in temporären Kopien;
-sie behauptet keinen allgemeinen Mutation-Score. CI ergänzt `govulncheck` und
-Gitleaks mit gepinnten Werkzeugversionen sowie Dependency- und Formatprüfungen.
+Der Helfer zeigt die Freigabe-URL, prüft Callback-State und Region und speichert
+das Zugangstoken standardmäßig in `secrets/pcloud-token` mit Dateimodus 0600.
+Er gibt die Konto-ID und die benötigten Konfigurationsnamen aus, niemals das Token.
+Die Region wird aus dem geprüften pCloud-Callback übernommen. Der Helfer benötigt eine lokale
+Browser-Freigabe; er ist kein Remote-OAuth-Anmeldedienst.
 
-Siehe [Sicherheitsgrenzen und OAuth-Konzept](docs/security.md).
+Folgende Umgebung für `pcloud-mcp` und den lokalen MCP-Client einrichten:
 
-## Deployment
+```sh
+export PCLOUD_ACCESS_TOKEN_FILE="$PWD/secrets/pcloud-token"
+export PCLOUD_REGION=eu
+export PCLOUD_USER_ID=123456       # durch die eigene bestätigte Konto-ID ersetzen
+export PCLOUD_ROOT_FOLDER_ID=98765 # eigenen freigegebenen Ordner wählen
+./bin/pcloud-mcp check
+```
 
-M0a wird lokal als vom Client gestarteter stdio-Prozess betrieben. Dafür ist
-kein Hostingaccount erforderlich. Ein externer Anbieter ist in diesem Repository
-noch nicht festgelegt. Remote-Deployment folgt erst nach Implementierung und
-Abnahme von Streamable HTTP, TLS und OAuth. Dieses Binary nicht als öffentlichen
-HTTP-Dienst oder über eine ungeschützte stdio-Bridge bereitstellen.
+`check` verifiziert Konto und Ordner mit lesenden API-Aufrufen. Ordner-ID `0`
+erlaubt ausdrücklich die gesamte Kontowurzel; einen eigenen Unterordner bevorzugen.
+Ein lokaler MCP-Client startet den absoluten Pfad von `bin/pcloud-mcp` als
+stdio-Unterprozess und erhält dieselbe Umgebung. stdout enthält nur MCP-Nachrichten,
+stderr Prozessfehler und Audit-Ereignisse.
 
-## Geplanter Umfang
+### Ein Artefakt speichern
 
-- Dateien/Ordner auflisten und nach Metadaten suchen
-- Metadaten und unterstützte Textdateien lesen
-- Ordner erstellen; Dateien hochladen, kopieren, verschieben und umbenennen
-- Von KI-Assistenten erzeugte Bilder/Dateien speichern, **sofern** der Client eine sichere Artefaktübergabe unterstützt
-- Löschen und Überschreiben erst nach serverseitiger Policy und zuverlässiger Bestätigung
+```sh
+export PCLOUD_ENABLE_WRITES=true
+./bin/pcloud-upload -file ./bild.png -folder 98765 -name bild.png
+```
 
-Nicht enthalten: Bildanalyse, Bildgenerierung durch den Server oder Versand über E-Mail/Messenger.
+Der lokale Helfer liest die Datei, berechnet SHA-256 und ruft `save_artifact` über
+das echte MCP-Go-SDK auf. Es werden keine Server-Dateipfade oder Download-URLs an
+pCloud weitergereicht. Für direkte MCP-Aufrufe: `folder_id`, `name`, `data_base64`
+und `sha256` übergeben. Für große Uploads
+`PCLOUD_MCP_MAX_FRAME_BYTES=8388608` setzen; der Helfer setzt diese Grenze selbst.
+Nach einem unklaren Schreibfehler zuerst pCloud kontrollieren, nicht blind wiederholen.
 
-## Technische Grundlage
+## Remote auf Render
 
-Go, [offizielles MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk), MCP-Spezifikation 2026-07-28, pCloud API, getrennte Policy Enforcement Layer, Security by Design, TDD, Mutationstests und Fuzzing.
+Zielplattform ist **Render**. [Deployment-Anleitung](docs/deployment.md) und
+[render-secure.yaml](render-secure.yaml) enthalten den konkreten Aufbau: Docker, Frankfurt,
+kostenloser Einstiegsplan, `/healthz`, Deploy nach erfolgreichen CI-Prüfungen.
+Der Free-Plan kann Kaltstarts haben; er ist kein Verfügbarkeitsversprechen.
 
-**[Vollständige Produktspezifikation](SPEC.md)**
+`render.yaml` erhält den separat vorbereiteten Bereitschaftsdienst
+`cmd/pcloud-remote`: `/healthz` antwortet, `/mcp` bleibt mit 503 gesperrt.
+Er wird erst nach vollständiger Einrichtung durch den eigentlichen Dienst ersetzt.
 
-Roadmap: M0 Fundament → M1 Lesen/Suche → M2 Dateiverwaltung/Upload → M3 geschützte destruktive Operationen.
+Remote-Zugriffe benötigen zusätzlich einen externen OAuth-2.1-Anmeldedienst mit
+Token-Introspection. pCloud-Zugangstoken und MCP-Client-Zugangstoken sind getrennt.
+Fehlende Konfiguration verhindert den Start. Pro Instanz ist genau ein Besitzer
+mit einem Ordnerbaum gebunden; dies ist kein mandantenfähiger Dienst.
 
-## Render (M0b readiness only)
+## Entwicklung und Nachweise
 
-`render.yaml` defines an optional **free Frankfurt** Render web service, deployed
-from `main` with automatic deploys. The HTTP entrypoint
-`cmd/pcloud-remote` offers `GET /healthz` and **deliberately rejects every
-`/mcp` request with HTTP 503**. This is **not a working remote MCP server**;
-there is no OAuth, pCloud connectivity or user data access yet. Never forward
-pCloud credentials to this placeholder. Remote functionality will be enabled
-only after authorization, policy enforcement and integration tests pass.
+```sh
+make check       # Build, Race-Tests, vet, Module, Protokoll-Smoke-Test
+make fuzz        # vier begrenzte Fuzz-Ziele
+make mutations   # gezielte sicherheitsrelevante Mutationen
+make security    # installierte govulncheck- und gitleaks-Werkzeuge
+```
 
-The local stdio binary remains `cmd/pcloud-mcp`.
+Die CI installiert die gepinnten Sicherheitswerkzeuge und baut zusätzlich den
+Docker-Container. Details: [Testnachweis](docs/verification.md),
+[Sicherheitsgrenzen](docs/security.md).
+
+Projektstruktur: `cmd/` enthält Server, OAuth- und Upload-Helfer;
+`internal/config` Konfiguration, `model` Datentypen, `netguard` Netzwerkgrenzen,
+`pcloud` den Provider-Adapter, `policy` die Zugriffsregeln, `service` die
+Anwendungsfälle, `server` die MCP-Tools und `remote` HTTP/OAuth. Transport,
+Policy und pCloud-Adapter bleiben getrennt.

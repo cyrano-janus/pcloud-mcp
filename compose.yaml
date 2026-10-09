@@ -1,0 +1,28 @@
+services:
+  pcloud-mcp:
+    build: .
+    image: pcloud-mcp:0.3.0-rc.1
+    restart: unless-stopped
+    read_only: true
+    user: "65532:65532"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    ports: ["443:8443"]
+    env_file: .env
+    environment:
+      PCLOUD_MCP_TRANSPORT: http
+      PCLOUD_MCP_LISTEN: "0.0.0.0:8443"
+      PCLOUD_MCP_TLS_CERT: /run/secrets/tls.crt
+      PCLOUD_MCP_TLS_KEY: /run/secrets/tls.key
+      PCLOUD_ACCESS_TOKEN_FILE: /run/secrets/pcloud-token
+      PCLOUD_MCP_OAUTH_CLIENT_SECRET_FILE: /run/secrets/oauth-client-secret
+    volumes:
+      - ./secrets:/run/secrets:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
