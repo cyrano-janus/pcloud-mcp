@@ -98,3 +98,11 @@ Referenzen: [Render Web Services](https://render.com/docs/web-services),
 [Blueprint-Schema](https://render.com/docs/blueprint-spec),
 [MCP Authorization](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization),
 [RFC 7662](https://www.rfc-editor.org/rfc/rfc7662).
+
+## Automatisierter Nachweis und aktueller Betriebsstand
+
+[Render-Status](render-status.md) dokumentiert die tatsächlich ermittelten IDs,
+Prüfungen und Blockaden. `scripts/verify_remote.py` und der manuell auslösbare
+GitHub-Workflow `verify-deployment` erzeugen einen JSON-Bericht für einen bekannten
+HTTPS-Endpunkt. Sie prüfen Zugriffsschutz ohne pCloud-Zugangsdaten; echte
+Client-Anmeldung und erlaubte Dateioperationen bleiben separate Abnahmeschritte.

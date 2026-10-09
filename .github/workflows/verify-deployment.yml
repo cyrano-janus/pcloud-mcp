@@ -1,0 +1,35 @@
+name: verify-deployment
+on:
+  workflow_dispatch:
+    inputs:
+      service_url:
+        description: Actual Render HTTPS origin (no path)
+        required: true
+        type: string
+      mode:
+        description: Deployed service mode
+        required: true
+        type: choice
+        options: [readiness, protected]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Probe HTTPS and access boundaries
+        env:
+          SERVICE_URL: ${{ inputs.service_url }}
+          SERVICE_MODE: ${{ inputs.mode }}
+        run: python3 scripts/verify_remote.py "$SERVICE_URL" --mode "$SERVICE_MODE"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: deployment-report
+          path: deployment-report.json
+          if-no-files-found: warn
+          retention-days: 14
