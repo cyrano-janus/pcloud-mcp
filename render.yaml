@@ -1,0 +1,13 @@
+# Safe M0b deployment. This service is a health endpoint only.
+# /mcp explicitly returns 503 until OAuth, pCloud and policy checks are implemented.
+services:
+  - type: web
+    name: pcloud-mcp
+    runtime: go
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    buildCommand: go build -trimpath -o bin/pcloud-remote ./cmd/pcloud-remote
+    startCommand: ./bin/pcloud-remote
+    healthCheckPath: /healthz
