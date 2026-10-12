@@ -32,6 +32,14 @@ type APIError struct{ Code int }
 
 func (e APIError) Error() string { return fmt.Sprintf("pCloud rejected request (code %d)", e.Code) }
 
+// HTTPError retains only the status, never provider body, URL or credentials.
+type HTTPError struct{ StatusCode int }
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("pCloud HTTP request failed (status %d); for writes the outcome may be unknown; do not retry automatically", e.StatusCode)
+}
+func (e *HTTPError) Unwrap() error { return ErrTransport }
+
 type Client struct {
 	base, token string
 	http        *http.Client
@@ -58,7 +66,7 @@ func (c *Client) request(ctx context.Context, method, contentType string, body i
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return nil, ErrTransport
+		return nil, &HTTPError{StatusCode: res.StatusCode}
 	}
 	if x := res.Header.Get("X-Error"); x != "" && x != "0" {
 		code, err := strconv.Atoi(x)

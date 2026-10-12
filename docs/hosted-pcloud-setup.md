@@ -34,6 +34,12 @@ Bei einem Startfehler nennt das Anwendungslog nur den Namen einer fehlenden oder
 ungültigen Einstellung (`startup configuration invalid: ...`), niemals ihren
 Wert. Für die beiden zufälligen Schlüssel gelten 32–128 druckbare ASCII-Zeichen
 ohne Leerzeichen oder Zeilenumbrüche; sie müssen unterschiedlich sein.
+Wenn der Callback die Kontofreigabe nicht verifizieren kann, nennt das App-Log
+nur den Schritt (`token_exchange`, `userinfo` oder `binding`) und eine feste
+Fehlerkategorie bzw. einen numerischen HTTP-/Provider-Fehlerstatus. Antworttexte,
+Tokens, App-Secret, OAuth-Code und Konto-IDs werden dabei nicht protokolliert.
+Ein bereits verbrauchter Callback-Code wird nicht erneut ausgetauscht;
+nach einem Fehler den Einrichtungsablauf neu beginnen.
 Wenn `PCLOUD_USER_ID` bereits gesetzt ist, muss die Freigabe genau zu diesem
 Konto passen. Ungültige oder unvollständige aktivierte Konfiguration verhindert
 den Prozessstart. Deshalb alle Werte zusammen speichern und deployen.

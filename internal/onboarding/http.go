@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"html/template"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -56,6 +57,50 @@ type Handler struct {
 }
 
 func New(cfg Config) (*Handler, error) { return newHandler(cfg, exchange) }
+
+type exchangeError struct {
+	stage string
+	cause error
+}
+
+func (e *exchangeError) Error() string { return "provider onboarding failed" }
+func (e *exchangeError) Unwrap() error { return e.cause }
+
+var errIdentityMismatch = errors.New("identity mismatch")
+var errRegionMismatch = errors.New("region mismatch")
+var errOwnerMismatch = errors.New("owner mismatch")
+
+// Only fixed stages/categories and numeric provider statuses enter logs.
+func setupFailureDiagnostic(err error) string {
+	stage := "unknown"
+	var wrapped *exchangeError
+	if errors.As(err, &wrapped) {
+		switch wrapped.stage {
+		case "token_exchange", "userinfo", "binding":
+			stage = wrapped.stage
+		}
+	}
+	category := "unknown"
+	var status *pcloud.HTTPError
+	var api pcloud.APIError
+	switch {
+	case errors.As(err, &status):
+		category = "http_status=" + strconv.Itoa(status.StatusCode)
+	case errors.As(err, &api):
+		category = "provider_error_number=" + strconv.Itoa(api.Code)
+	case errors.Is(err, pcloud.ErrTransport):
+		category = "transport"
+	case errors.Is(err, pcloud.ErrResponse):
+		category = "invalid_response"
+	case errors.Is(err, errIdentityMismatch):
+		category = "identity_mismatch"
+	case errors.Is(err, errRegionMismatch):
+		category = "region_mismatch"
+	case errors.Is(err, errOwnerMismatch):
+		category = "owner_mismatch"
+	}
+	return stage + " " + category
+}
 func newHandler(cfg Config, fn exchangeFunc) (*Handler, error) {
 	u, err := url.Parse(cfg.Origin)
 	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || u.Opaque != "" {
@@ -87,15 +132,18 @@ func newHandler(cfg Config, fn exchangeFunc) (*Handler, error) {
 func exchange(ctx context.Context, region, clientID, secret, code string) (credential.Data, error) {
 	result, err := pcloud.ExchangeCode(ctx, region, clientID, secret, code)
 	if err != nil {
-		return credential.Data{}, err
+		return credential.Data{}, &exchangeError{stage: "token_exchange", cause: err}
 	}
 	client, err := pcloud.New(region, result.Token)
 	if err != nil {
-		return credential.Data{}, err
+		return credential.Data{}, &exchangeError{stage: "userinfo", cause: err}
 	}
 	identity, err := client.Whoami(ctx)
-	if err != nil || identity.UserID != result.UserID {
-		return credential.Data{}, errors.New("provider identity verification failed")
+	if err != nil {
+		return credential.Data{}, &exchangeError{stage: "userinfo", cause: err}
+	}
+	if identity.UserID != result.UserID {
+		return credential.Data{}, &exchangeError{stage: "userinfo", cause: errIdentityMismatch}
 	}
 	return credential.Data{Token: result.Token, Region: region, UserID: identity.UserID}, nil
 }
@@ -263,7 +311,14 @@ func (h *Handler) callback(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: -1})
 	data, err := h.exchange(r.Context(), region, h.cfg.ClientID, h.cfg.ClientSecret, code)
-	if err != nil || data.Region != region || (h.cfg.ExpectedUserID > 0 && data.UserID != h.cfg.ExpectedUserID) {
+	if err == nil && data.Region != region {
+		err = &exchangeError{stage: "binding", cause: errRegionMismatch}
+	}
+	if err == nil && h.cfg.ExpectedUserID > 0 && data.UserID != h.cfg.ExpectedUserID {
+		err = &exchangeError{stage: "binding", cause: errOwnerMismatch}
+	}
+	if err != nil {
+		log.Print("pCloud setup failed: " + setupFailureDiagnostic(err))
 		http.Error(w, "Kontofreigabe konnte nicht verifiziert werden; Einrichtung erneut beginnen", 502)
 		return
 	}

@@ -83,6 +83,9 @@ MUTATIONS = [
     ("setup form browser Origin suppressed", "internal/onboarding/http.go",
      'w.Header().Set("Referrer-Policy", "same-origin")', 'w.Header().Set("Referrer-Policy", "no-referrer")',
      "./internal/onboarding", "TestSetupFormPreservesSameOriginPost"),
+    ("unsafe provider error exposed", "internal/onboarding/http.go",
+     'category := "unknown"', 'category := err.Error()',
+     "./internal/onboarding", "TestProviderFailureDiagnosticsAreRedacted"),
 
 ]
 

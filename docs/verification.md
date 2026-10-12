@@ -104,3 +104,10 @@ OAuth-Ergebnis behalten `no-referrer`. Fehlende, fremde und `null`-Origins bleib
 gesperrt. Die betroffenen Race-Tests, vet und alle **24** gezielten Mutationen
 bestanden lokal. Ein realer Browser-Login beim Provider bleibt eine gesonderte
 Abnahme; die Handler-Tests behaupten keine erfolgreiche Kontofreigabe.
+
+Provider-Fehlerdiagnosen unterscheiden Token-Austausch, `userinfo` und Konto-/
+Regionsbindung. Nur feste Kategorien und numerische HTTP-/Provider-Fehlerstatus
+werden geloggt. Tests prüfen unbekannte Fehlertexte und Stufen auf Redaktion;
+HTTP-Fehler erhalten die Transport-Klassifizierung und den Hinweis auf unklare
+Schreibergebnisse. Die betroffenen Race-Tests und alle **25** Mutationen bestanden
+lokal; der neue Fehlerausgabe-Mutant wurde durch Testfehler erkannt.

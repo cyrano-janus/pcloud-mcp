@@ -2,6 +2,7 @@ package pcloud
 
 import (
 	"context"
+	"errors"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -15,6 +16,20 @@ type transportFunc func(*http.Request) (*http.Response, error)
 func (f transportFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 func response(body string) *http.Response {
 	return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}
+}
+
+func TestHTTPFailureRetainsOnlyStatus(t *testing.T) {
+	c, _ := New("eu", "private-token")
+	c.http.Transport = transportFunc(func(*http.Request) (*http.Response, error) {
+		r := response("private-provider-response")
+		r.StatusCode = 403
+		return r, nil
+	})
+	_, err := c.Whoami(context.Background())
+	var status *HTTPError
+	if !errors.As(err, &status) || status.StatusCode != 403 || !errors.Is(err, ErrTransport) || strings.Contains(err.Error(), "private") {
+		t.Fatal("unsafe HTTP failure", err)
+	}
 }
 
 func TestFolderMetadataAndTextErrors(t *testing.T) {

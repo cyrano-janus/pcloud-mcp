@@ -2,6 +2,7 @@ package onboarding
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cyrano-janus/pcloud-mcp/internal/credential"
+	"github.com/cyrano-janus/pcloud-mcp/internal/pcloud"
 )
 
 func fixture(t *testing.T) (*Handler, *http.Cookie, string, *int) {
@@ -35,6 +37,24 @@ func fixture(t *testing.T) (*Handler, *http.Cookie, string, *int) {
 	}
 	csrf := regexp.MustCompile(`name="csrf" value="([^"]+)"`).FindStringSubmatch(r.Body.String())[1]
 	return h, cookie, csrf, calls
+}
+
+func TestProviderFailureDiagnosticsAreRedacted(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		want string
+	}{
+		{&exchangeError{stage: "token_exchange", cause: pcloud.APIError{Code: 2000}}, "token_exchange provider_error_number=2000"},
+		{&exchangeError{stage: "userinfo", cause: pcloud.ErrTransport}, "userinfo transport"},
+		{&exchangeError{stage: "token_exchange", cause: &pcloud.HTTPError{StatusCode: 403}}, "token_exchange http_status=403"},
+		{&exchangeError{stage: "userinfo", cause: pcloud.ErrResponse}, "userinfo invalid_response"},
+		{&exchangeError{stage: "private-secret", cause: errors.New("private-secret")}, "unknown unknown"},
+		{errors.New("private-secret"), "unknown unknown"},
+	} {
+		if got := setupFailureDiagnostic(tc.err); got != tc.want {
+			t.Fatal("unsafe or imprecise failure diagnostic", got)
+		}
+	}
 }
 func start(h *Handler, c *http.Cookie, csrf, secret, origin string) *httptest.ResponseRecorder {
 	form := url.Values{"csrf": {csrf}, "setup_secret": {secret}}
