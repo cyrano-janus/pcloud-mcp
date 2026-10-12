@@ -189,6 +189,12 @@ func newHandler(cfg config.Config, server *mcp.Server, client *http.Client) (htt
 			http.Error(w, "ambiguous authorization", 400)
 			return
 		}
+		// Health checks must remain independent of MCP traffic, including rejected
+		// requests. Host, Origin and query checks above still apply.
+		if r.URL.Path == "/healthz" {
+			mux.ServeHTTP(w, r)
+			return
+		}
 		if !limit.Allow() {
 			w.Header().Set("Retry-After", "1")
 			http.Error(w, "rate limit", 429)

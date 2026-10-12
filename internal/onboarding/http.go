@@ -4,6 +4,7 @@ package onboarding
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,10 +33,9 @@ type Config struct {
 }
 type exchangeFunc func(context.Context, string, string, string, string) (credential.Data, error)
 type session struct {
-	csrf, state string
-	expires     time.Time
-	attempts    int
-	started     bool
+	state   string
+	expires time.Time
+	started bool
 }
 type Handler struct {
 	cfg      Config
@@ -43,6 +44,7 @@ type Handler struct {
 	sessions map[string]*session
 	now      func() time.Time
 	exchange exchangeFunc
+	proofKey [32]byte
 	limit    *rate.Limiter
 	mux      *http.ServeMux
 }
@@ -54,6 +56,9 @@ func newHandler(cfg Config, fn exchangeFunc) (*Handler, error) {
 		return nil, errors.New("complete secure hosted pCloud setup configuration required")
 	}
 	h := &Handler{cfg: cfg, host: u.Host, sessions: map[string]*session{}, now: time.Now, exchange: fn, limit: rate.NewLimiter(1, 5), mux: http.NewServeMux()}
+	if _, err := rand.Read(h.proofKey[:]); err != nil {
+		return nil, errors.New("setup form protection unavailable")
+	}
 	h.mux.HandleFunc("GET /setup/pcloud", h.form)
 	h.mux.HandleFunc("POST /setup/pcloud/start", h.start)
 	h.mux.HandleFunc("GET /oauth/pcloud/callback", h.callback)
@@ -133,6 +138,26 @@ func (h *Handler) clean() {
 	}
 }
 
+// Public forms carry a browser-bound, expiring proof without reserving memory.
+// An independent process key avoids exposing an offline setup-secret oracle.
+func (h *Handler) formProof(id, expiry string) string {
+	mac := hmac.New(sha256.New, h.proofKey[:])
+	_, _ = mac.Write([]byte("pcloud-mcp/setup-form/v1\x00" + id + "\x00" + expiry))
+	return expiry + "." + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+func (h *Handler) validateProof(id, proof string) (time.Time, bool) {
+	parts := strings.Split(proof, ".")
+	if id == "" || len(parts) != 2 || len(proof) > 80 {
+		return time.Time{}, false
+	}
+	seconds, err := strconv.ParseInt(parts[0], 10, 64)
+	expires := time.Unix(seconds, 0)
+	if err != nil || !h.now().Before(expires) || expires.After(h.now().Add(lifetime)) {
+		return time.Time{}, false
+	}
+	return expires, equal(proof, h.formProof(id, parts[0]))
+}
+
 var formTemplate = template.Must(template.New("setup").Parse(`<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>pCloud verbinden</title><main><h1>pCloud verbinden</h1><p>Diese Einrichtung verbindet ein pCloud-Konto. Dateioperationen bleiben gesperrt. Der Einrichtungsschlüssel gehört nur dem Betreiber dieses Dienstes.</p><form method="post" action="/setup/pcloud/start"><input type="hidden" name="csrf" value="{{.}}"><label for="setup_secret">Einrichtungsschlüssel aus Render</label><input id="setup_secret" name="setup_secret" type="password" autocomplete="off" required maxlength="128"><button type="submit">Bei pCloud anmelden und Zugriff freigeben</button></form><p>Die Sitzung läuft nach fünf Minuten ab. Bei einem Neustart muss die Einrichtung neu begonnen werden.</p></main></html>`))
 
 func (h *Handler) form(w http.ResponseWriter, r *http.Request) {
@@ -140,33 +165,21 @@ func (h *Handler) form(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 	h.clean()
 	id := browserID(r)
-	s := h.sessions[id]
-	if s == nil {
-		if len(h.sessions) >= maxSessions {
-			http.Error(w, "Einrichtung vorübergehend ausgelastet", 503)
-			return
-		}
+	if s := h.sessions[id]; s != nil && s.started {
+		http.Error(w, "Diese Freigabe wurde bereits begonnen", 409)
+		return
+	}
+	if id == "" {
 		var err error
 		id, err = nonce()
 		if err != nil {
 			http.Error(w, "Einrichtung nicht verfügbar", 503)
 			return
 		}
-		csrf, err := nonce()
-		if err != nil {
-			http.Error(w, "Einrichtung nicht verfügbar", 503)
-			return
-		}
-		s = &session{csrf: csrf, expires: h.now().Add(lifetime)}
-		h.sessions[id] = s
-	}
-	if s.started {
-		http.Error(w, "Diese Freigabe wurde bereits begonnen", 409)
-		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: id, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteLaxMode, MaxAge: 300})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = formTemplate.Execute(w, s.csrf)
+	_ = formTemplate.Execute(w, h.formProof(id, strconv.FormatInt(h.now().Add(lifetime).Unix(), 10)))
 }
 func (h *Handler) start(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 4096)
@@ -178,14 +191,17 @@ func (h *Handler) start(w http.ResponseWriter, r *http.Request) {
 	defer h.mu.Unlock()
 	h.clean()
 	id := browserID(r)
-	s := h.sessions[id]
-	if s == nil || s.started || s.attempts >= 3 {
+	expires, validProof := h.validateProof(id, r.PostForm.Get("csrf"))
+	if h.sessions[id] != nil || id == "" {
 		http.Error(w, "Einrichtung abgewiesen", 403)
 		return
 	}
-	s.attempts++
-	if !equal(r.PostForm.Get("setup_secret"), h.cfg.SetupSecret) || !equal(r.PostForm.Get("csrf"), s.csrf) {
+	if !equal(r.PostForm.Get("setup_secret"), h.cfg.SetupSecret) || !validProof {
 		http.Error(w, "Einrichtung abgewiesen", 403)
+		return
+	}
+	if len(h.sessions) >= maxSessions {
+		http.Error(w, "Einrichtung vorübergehend ausgelastet", 503)
 		return
 	}
 	state, err := nonce()
@@ -193,8 +209,7 @@ func (h *Handler) start(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Einrichtung nicht verfügbar", 503)
 		return
 	}
-	s.state = state
-	s.started = true
+	h.sessions[id] = &session{state: state, expires: expires, started: true}
 	http.Redirect(w, r, pcloud.AuthorizationURL(h.cfg.ClientID, h.cfg.Origin+"/oauth/pcloud/callback", state), http.StatusSeeOther)
 }
 

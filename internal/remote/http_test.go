@@ -162,3 +162,25 @@ func TestRenderTLSBoundary(t *testing.T) {
 		t.Fatal("ambiguous Render TLS configuration accepted")
 	}
 }
+
+func TestHealthIndependentOfPublicRequestBudget(t *testing.T) {
+	cfg := remoteConfig()
+	h, err := newHandler(cfg, mcp.NewServer(&mcp.Implementation{Name: "test", Version: "1"}, nil), &http.Client{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 30; i++ {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", cfg.PublicURL, nil))
+	}
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "https://mcp.example.com/healthz", nil))
+	if w.Code != 200 {
+		t.Fatal("public requests blocked health", w.Code)
+	}
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "https://evil.example.com/healthz", nil))
+	if w.Code != 403 {
+		t.Fatal("health bypassed host binding", w.Code)
+	}
+}

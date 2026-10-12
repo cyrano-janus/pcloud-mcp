@@ -109,3 +109,17 @@ Token-Datei, die auf Free-Diensten bei Neustarts verloren gehen könnte.
 Einrichtung ist standardmäßig deaktiviert und ersetzt weder die MCP-OAuth-
 Anmeldung noch die Ordner-Policy. Voraussetzungen, Browser-Schritte und konkrete
 Rest-Risiken stehen in [Gehostete Einrichtung](hosted-pcloud-setup.md).
+
+Seit dem 12. Oktober 2026 reserviert das öffentliche Einrichtungsformular keine
+OAuth-Sitzung mehr. Ein HMAC-SHA-256-Formularnachweis bindet Cookie und Ablaufzeit;
+sein unabhängiger zufälliger Prozessschlüssel wird bei Neustarts verworfen.
+Erst nach Prüfung dieses Nachweises und des Einrichtungsschlüssels wird eine
+begrenzte In-Memory-Sitzung angelegt. Öffentliche Formularaufrufe können deshalb
+nicht mehr die 32 OAuth-Sitzungsplätze belegen.
+
+Im vollständigen Remote-Server liegt `/healthz` außerhalb des gemeinsamen
+MCP-Raten- und Parallelitätsbudgets. Host-, Origin- und Query-Prüfungen bleiben
+aktiv. Dies schützt Health-Probes vor Budgetverbrauch durch MCP-Anfragen, ist
+aber kein Schutz gegen Netzüberlastung. Das öffentliche MCP-/Einrichtungsbudget
+kann weiterhin unter Last ausgeschöpft werden; Schutz am vorgeschalteten Edge
+und die Kapazität des Free-Dienstes bleiben Betriebsgrenzen.

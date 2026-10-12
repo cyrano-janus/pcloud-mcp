@@ -8,6 +8,9 @@ Dateioperationen sind im aktuell betriebenen Bereitschaftsdienst weiterhin gespe
 ## Einmalige Vorbereitung
 
 In [pCloud My Apps](https://docs.pcloud.com/my_apps/) die eigene App registrieren.
+Der Betreiber hat am 12. Oktober 2026 die Freigabe von `Ppcloud-mcp-cyrano`
+gemeldet. App-ID, App-Secret und ein realer Konto-Login wurden hier noch nicht
+verifiziert.
 Für diesen Render-Dienst muss die Redirect-URI exakt lauten:
 
 ```text
@@ -65,6 +68,9 @@ exakten Host/Origin und einen CSRF-Wert. Secure-/HttpOnly-/SameSite-Lax-Cookies
 binden die Freigabe an den Browser. Sitzungen enden nach fünf Minuten; State wird
 vor dem Token-Austausch atomar verbraucht. Andere Provider-Hosts, doppelte Callback-
 Parameter und abweichende konfigurierte Konto-IDs werden abgewiesen.
+Das öffentliche Formular reserviert keine OAuth-Sitzung: sein HMAC-geschützter
+CSRF-Nachweis ist an Cookie und Ablaufzeit gebunden. Sitzungsspeicher wird erst
+nach erfolgreicher Prüfung des Einrichtungsschlüssels und des Nachweises belegt.
 
 Der verschlüsselte Token nutzt AES-GCM mit zufälligem Nonce und Versions-/Zweck-
 Bindung. Manipulationen und falsche Schlüssel werden erkannt. Token und Client-

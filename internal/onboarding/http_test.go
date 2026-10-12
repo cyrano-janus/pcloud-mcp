@@ -142,3 +142,48 @@ func TestSetupConfigurationAndOwnerBinding(t *testing.T) {
 		t.Fatal("wrong provider owner accepted")
 	}
 }
+
+func TestPublicFormsDoNotReserveSessions(t *testing.T) {
+	h, c, csrf, _ := fixture(t)
+	for i := 0; i < 100; i++ {
+		w := httptest.NewRecorder()
+		h.form(w, httptest.NewRequest("GET", h.cfg.Origin+"/setup/pcloud", nil))
+		if w.Code != 200 {
+			t.Fatal("public form blocked", w.Code)
+		}
+	}
+	if len(h.sessions) != 0 {
+		t.Fatal("unauthenticated forms reserved OAuth sessions")
+	}
+	if r := start(h, c, csrf, "wrong", h.cfg.Origin); r.Code != 403 || len(h.sessions) != 0 {
+		t.Fatal("invalid secret allocated session")
+	}
+	if r := start(h, c, csrf, h.cfg.SetupSecret, h.cfg.Origin); r.Code != 303 || len(h.sessions) != 1 {
+		t.Fatal("owner could not start", r.Code)
+	}
+}
+
+func TestFormProofBrowserExpiryAndTampering(t *testing.T) {
+	for _, kind := range []string{"browser", "expiry", "tampering", "restart"} {
+		t.Run(kind, func(t *testing.T) {
+			h, c, csrf, _ := fixture(t)
+			switch kind {
+			case "browser":
+				c.Value = strings.Repeat("x", 43)
+			case "expiry":
+				h.now = func() time.Time { return time.Now().Add(6 * time.Minute) }
+			case "tampering":
+				csrf = "0" + csrf
+			case "restart":
+				next, err := New(h.cfg)
+				if err != nil {
+					t.Fatal(err)
+				}
+				h = next
+			}
+			if r := start(h, c, csrf, h.cfg.SetupSecret, h.cfg.Origin); r.Code != 403 || len(h.sessions) != 0 {
+				t.Fatal("unbound form accepted", r.Code)
+			}
+		})
+	}
+}

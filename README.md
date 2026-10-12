@@ -4,7 +4,7 @@ MCP-Server in Go für den kontrollierten Zugriff auf das eigene pCloud-Konto.
 
 ## Aktuell nutzbarer Stand
 
-Stand: **9. Oktober 2026**. Der Dienst ist auf **Render Free in Frankfurt**
+Stand: **12. Oktober 2026**. Der Dienst ist auf **Render Free in Frankfurt**
 bereitgestellt: https://pcloud-mcp-ppew.onrender.com.
 
 | Bereich | Aktueller Stand |
@@ -12,12 +12,12 @@ bereitgestellt: https://pcloud-mcp-ppew.onrender.com.
 | Gehosteter Dienst | HTTPS-Bereitschaftsdienst; `GET /healthz` liefert 200 |
 | Öffentlicher MCP-Endpunkt | `/mcp` bleibt mit 503 gesperrt; keine öffentlichen Dateioperationen |
 | Gehostete pCloud-Einrichtung | Implementiert, derzeit deaktiviert; `/setup/pcloud` liefert 503 |
-| pCloud-App | Antrag für `Ppcloud-mcp-cyrano` laut Besitzer eingereicht; Freigabe steht aus |
+| pCloud-App | `Ppcloud-mcp-cyrano` laut Besitzer freigegeben; Zugangskonfiguration und reale Verbindung noch offen |
 | Lokaler MCP-Server | stdio-Transport; Datei-Tools nach eigener Konto- und Ordnerkonfiguration |
 | Vollständiger Remote-MCP-Server | Streamable HTTP und OAuth-Zugriffsschutz implementiert, noch nicht im Live-Dienst aktiviert |
 
 **Der Render-Dienst ist noch kein nutzbarer pCloud-Dateizugriff für ChatGPT.**
-Für diesen Betrieb fehlen die pCloud-App-Freigabe und Zugangskonfiguration,
+Für diesen Betrieb fehlen die pCloud-Zugangskonfiguration,
 die Einrichtung des externen OAuth-Anmeldedienstes sowie reale Konto- und
 Client-Tests. Die gehostete pCloud-Freigabe allein schaltet `/mcp` nicht frei.
 

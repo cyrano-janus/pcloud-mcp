@@ -57,7 +57,7 @@ MUTATIONS = [
      '!equal(r.PostForm.Get("setup_secret"), h.cfg.SetupSecret)', 'false',
      "./internal/onboarding", "TestSetupRequiresSecretCSRFAndOrigin"),
     ("hosted setup CSRF removed", "internal/onboarding/http.go",
-     '!equal(r.PostForm.Get("csrf"), s.csrf)', 'false',
+     '!validProof', 'false',
      "./internal/onboarding", "TestSetupRequiresSecretCSRFAndOrigin"),
     ("hosted setup origin removed", "internal/onboarding/http.go",
      'origin != h.cfg.Origin', 'false',
@@ -71,6 +71,12 @@ MUTATIONS = [
     ("encrypted credential owner removed", "internal/config/runtime.go",
      'encryptedOwner != 0 && cfg.UserID != encryptedOwner', 'encryptedOwner < 0',
      "./internal/config", "TestEncryptedCredentialOwnerBinding"),
+    ("setup form browser MAC removed", "internal/onboarding/http.go",
+     'equal(proof, h.formProof(id, parts[0]))', 'true',
+     "./internal/onboarding", "TestFormProofBrowserExpiryAndTampering"),
+    ("health independence removed", "internal/remote/http.go",
+     'r.URL.Path == "/healthz"', 'r.URL.Path == "/unused-health"',
+     "./internal/remote", "TestHealthIndependentOfPublicRequestBudget"),
 
 ]
 
@@ -94,6 +100,8 @@ for name, filename, before, after, package, case in MUTATIONS:
         # Removing the validation also makes err unused. Retain compilation.
         if name == "config validation removed":
             mutated = mutated.replace("if false {", "_ = err\n\t\tif false {")
+        if name == "hosted setup CSRF removed":
+            mutated = mutated.replace('if !equal(r.PostForm.Get("setup_secret")', '_ = validProof\n\tif !equal(r.PostForm.Get("setup_secret")')
         path.write_text(mutated)
         result = test(work, package, case)
         output = result.stdout + result.stderr

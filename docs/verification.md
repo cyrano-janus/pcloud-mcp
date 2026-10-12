@@ -71,3 +71,23 @@ Auf Render wird `PCLOUD_SETUP_ENABLED=false` ausdrücklich gesetzt. Solange App-
 Credentials und unabhängige Schlüssel fehlen, sind die gehostete Einrichtung und
 MCP-Dateioperationen gesperrt. Ein echter pCloud-Login ist deshalb noch nicht als
 bestanden dokumentiert.
+
+## Schutzkorrekturen vom 12. Oktober 2026
+
+Neue Regressionstests wurden vor der Änderung ausgeführt: öffentliche Formulare
+füllten die OAuth-Sitzungstabelle und lieferten 503; nach unauthentifizierten
+MCP-Anfragen lieferte der Health-Endpunkt 429. Beide Tests schlugen erwartungsgemäß
+fehl. Nach der Korrektur reservieren öffentliche Formulare keine Sitzung;
+erst gültiger Betreiber-Schlüssel und browsergebundener HMAC-Formularnachweis
+erlauben eine Sitzung. Falsche Cookies, manipulierte und abgelaufene Nachweise
+sowie Nachweise aus einem vorherigen Prozess werden abgewiesen. Health-Probes
+bleiben vom MCP-Budget getrennt, behalten aber Host-/Origin-/Query-Prüfungen.
+
+Lokal bestanden `make check`, die Python-Tests und alle **22** gezielten
+Mutationen. Zwei neue Mutationen entfernen die Formular-MAC-Prüfung bzw. die
+Health-Ausnahme und werden durch Testfehler erkannt. `govulncheck ./...` meldete
+keine bekannten erreichbaren Schwachstellen. Nach der unabhängigen Prozess-
+Schlüssel-Ergänzung bestanden die Onboarding-Race-Tests und vet erneut.
+
+Der Betreiber meldete die pCloud-App-Freigabe. Reale App-Credentials,
+Konto-Freigabe, externer MCP-OAuth-Anmeldedienst und Client-Abnahme bleiben offen.
