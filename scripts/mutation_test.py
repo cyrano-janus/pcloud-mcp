@@ -80,6 +80,9 @@ MUTATIONS = [
     ("unsafe startup error exposed", "cmd/pcloud-remote/main.go",
      'return "HTTP readiness service stopped"', 'return err.Error()',
      "./cmd/pcloud-remote", "TestStartupDiagnosticsNeverExposeValues"),
+    ("setup form browser Origin suppressed", "internal/onboarding/http.go",
+     'w.Header().Set("Referrer-Policy", "same-origin")', 'w.Header().Set("Referrer-Policy", "no-referrer")',
+     "./internal/onboarding", "TestSetupFormPreservesSameOriginPost"),
 
 ]
 

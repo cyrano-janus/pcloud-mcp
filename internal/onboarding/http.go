@@ -103,6 +103,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	// HTML form navigation uses the document's referrer policy to determine
+	// Origin. no-referrer would produce Origin:null and fail our exact check.
+	// Only the token-free setup form permits same-origin referrers; provider
+	// redirects and callbacks retain no-referrer to protect authorization codes.
+	if (r.Method == "GET" || r.Method == "HEAD") && r.URL.Path == "/setup/pcloud" && r.URL.RawQuery == "" {
+		w.Header().Set("Referrer-Policy", "same-origin")
+	}
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; form-action 'self' https://my.pcloud.com; frame-ancestors 'none'; base-uri 'none'")

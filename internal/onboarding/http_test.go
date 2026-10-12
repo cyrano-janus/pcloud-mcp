@@ -59,7 +59,7 @@ func callback(h *Handler, c *http.Cookie, state string) *httptest.ResponseRecord
 	return r
 }
 func TestSetupRequiresSecretCSRFAndOrigin(t *testing.T) {
-	for _, kind := range []string{"secret", "csrf", "origin", "cookie"} {
+	for _, kind := range []string{"secret", "csrf", "origin", "missing origin", "null origin", "cookie"} {
 		t.Run(kind, func(t *testing.T) {
 			h, c, csrf, calls := fixture(t)
 			secret := h.cfg.SetupSecret
@@ -71,6 +71,10 @@ func TestSetupRequiresSecretCSRFAndOrigin(t *testing.T) {
 				csrf = "wrong"
 			case "origin":
 				origin = "https://foreign.example"
+			case "missing origin":
+				origin = ""
+			case "null origin":
+				origin = "null"
 			case "cookie":
 				c = nil
 			}
@@ -79,6 +83,24 @@ func TestSetupRequiresSecretCSRFAndOrigin(t *testing.T) {
 				t.Fatal("unauthorized setup accepted", r.Code)
 			}
 		})
+	}
+}
+
+func TestSetupFormPreservesSameOriginPost(t *testing.T) {
+	h, c, csrf, _ := fixture(t)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", h.cfg.Origin+"/setup/pcloud", nil))
+	if w.Header().Get("Referrer-Policy") != "same-origin" {
+		t.Fatal("form policy suppresses Origin on browser POST")
+	}
+	r := start(h, c, csrf, h.cfg.SetupSecret, h.cfg.Origin)
+	if r.Code != 303 || r.Header().Get("Referrer-Policy") != "no-referrer" {
+		t.Fatal("provider redirect can leak referrer", r.Code)
+	}
+	u, _ := url.Parse(r.Header().Get("Location"))
+	out := callback(h, c, u.Query().Get("state"))
+	if out.Code != 200 || out.Header().Get("Referrer-Policy") != "no-referrer" {
+		t.Fatal("callback can leak provider code")
 	}
 }
 func TestCallbackBrowserStateExpiryAndReplay(t *testing.T) {

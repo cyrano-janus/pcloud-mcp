@@ -91,3 +91,16 @@ Schlüssel-Ergänzung bestanden die Onboarding-Race-Tests und vet erneut.
 
 Der Betreiber meldete die pCloud-App-Freigabe. Reale App-Credentials,
 Konto-Freigabe, externer MCP-OAuth-Anmeldedienst und Client-Abnahme bleiben offen.
+
+## Formular-Origin und sichere Startdiagnose
+
+Startdiagnosen erlauben nur feste Konfigurationsnamen; unbekannte Fehler und
+unbekannte Feldnamen werden maskiert. Race-Tests sowie die Mutation, die rohe
+Fehlertexte ausgibt, prüfen diese Grenze.
+
+Der zusätzliche Formular-Test schlug zunächst fehl, weil das Einrichtungsformular
+`no-referrer` verwendete. Es verwendet jetzt `same-origin`; Provider-Redirect und
+OAuth-Ergebnis behalten `no-referrer`. Fehlende, fremde und `null`-Origins bleiben
+gesperrt. Die betroffenen Race-Tests, vet und alle **24** gezielten Mutationen
+bestanden lokal. Ein realer Browser-Login beim Provider bleibt eine gesonderte
+Abnahme; die Handler-Tests behaupten keine erfolgreiche Kontofreigabe.

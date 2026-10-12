@@ -123,3 +123,10 @@ aktiv. Dies schützt Health-Probes vor Budgetverbrauch durch MCP-Anfragen, ist
 aber kein Schutz gegen Netzüberlastung. Das öffentliche MCP-/Einrichtungsbudget
 kann weiterhin unter Last ausgeschöpft werden; Schutz am vorgeschalteten Edge
 und die Kapazität des Free-Dienstes bleiben Betriebsgrenzen.
+
+Das tokenfreie Einrichtungsformular verwendet `Referrer-Policy: same-origin`,
+damit Browser bei seiner lokalen Formularübermittlung den tatsächlichen Origin
+senden. Ein globales `no-referrer` erzeugt dabei `Origin: null` und widerspricht
+der exakten Origin-Prüfung. Provider-Redirects, OAuth-Callback und Ergebnis-Seite
+behalten `no-referrer`; der Callback-Code wird nicht als Referrer weitergereicht.
+Fremde, fehlende und `null`-Origins bei POST bleiben abgewiesen.
