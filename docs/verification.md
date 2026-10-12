@@ -111,3 +111,11 @@ werden geloggt. Tests prüfen unbekannte Fehlertexte und Stufen auf Redaktion;
 HTTP-Fehler erhalten die Transport-Klassifizierung und den Hinweis auf unklare
 Schreibergebnisse. Die betroffenen Race-Tests und alle **25** Mutationen bestanden
 lokal; der neue Fehlerausgabe-Mutant wurde durch Testfehler erkannt.
+
+Der Token-Decoder unterstützt sowohl `uid` aus der Methodendokumentation als auch
+`userid` aus der [offiziellen SDK-Referenz](https://github.com/pCloud/pcloud-sdk-js/blob/master/docs/api-oauth.md).
+Regressionstests schlugen vor der Änderung für `userid` fehl. Positive Integer-
+IDs sind erforderlich; widersprüchliche Aliase, Null-, String- und negative Werte
+werden abgewiesen. Race-Tests und alle **26** Mutationen bestanden lokal,
+einschließlich der Mutation, die widersprüchliche Konto-IDs akzeptiert. Das
+bestehende Provider-JSON-Fuzz-Ziel prüft zusätzlich den Token-Decoder.

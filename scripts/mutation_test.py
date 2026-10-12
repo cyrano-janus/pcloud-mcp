@@ -86,6 +86,9 @@ MUTATIONS = [
     ("unsafe provider error exposed", "internal/onboarding/http.go",
      'category := "unknown"', 'category := err.Error()',
      "./internal/onboarding", "TestProviderFailureDiagnosticsAreRedacted"),
+    ("conflicting token identity accepted", "internal/pcloud/oauth.go",
+     'owner > 0 && owner != id', 'false',
+     "./internal/pcloud", "TestOAuthCredentialIdentityFormats"),
 
 ]
 

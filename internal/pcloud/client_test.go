@@ -93,6 +93,7 @@ func TestMultipartSafety(t *testing.T) {
 }
 func FuzzDecode(f *testing.F) {
 	f.Add([]byte(`{"result":0,"userid":7}`))
+	f.Add([]byte(`{"result":0,"uid":7,"userid":8}`))
 	f.Add([]byte(`{"result":2000}`))
 	f.Add([]byte(`{`))
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -101,6 +102,10 @@ func FuzzDecode(f *testing.F) {
 		}
 		var out map[string]any
 		_ = decode(data, &out)
+		var credential OAuthCredential
+		if decode(data, &credential) == nil && credential.UserID <= 0 {
+			t.Fatal("accepted token identity is not positive")
+		}
 	})
 }
 func TestTokenAndCopySafety(t *testing.T) {

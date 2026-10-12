@@ -3,6 +3,7 @@ package pcloud
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"strings"
@@ -12,6 +13,36 @@ type OAuthCredential struct {
 	Token  string `json:"access_token"`
 	Type   string `json:"token_type"`
 	UserID int64  `json:"uid"`
+}
+
+// pCloud's token-method documentation uses uid, while its official JavaScript
+// SDK consumes userid. Accept either integer spelling, but reject ambiguity.
+func (c *OAuthCredential) UnmarshalJSON(data []byte) error {
+	var wire struct {
+		Token  string          `json:"access_token"`
+		Type   string          `json:"token_type"`
+		UID    json.RawMessage `json:"uid"`
+		UserID json.RawMessage `json:"userid"`
+	}
+	if json.Unmarshal(data, &wire) != nil {
+		return ErrResponse
+	}
+	var owner int64
+	for _, raw := range []json.RawMessage{wire.UID, wire.UserID} {
+		if len(raw) == 0 {
+			continue
+		}
+		var id int64
+		if json.Unmarshal(raw, &id) != nil || id <= 0 || (owner > 0 && owner != id) {
+			return ErrResponse
+		}
+		owner = id
+	}
+	if owner <= 0 {
+		return ErrResponse
+	}
+	*c = OAuthCredential{Token: wire.Token, Type: wire.Type, UserID: owner}
+	return nil
 }
 
 func AuthorizationURL(clientID, redirect, state string) string {

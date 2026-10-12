@@ -40,6 +40,10 @@ Fehlerkategorie bzw. einen numerischen HTTP-/Provider-Fehlerstatus. Antworttexte
 Tokens, App-Secret, OAuth-Code und Konto-IDs werden dabei nicht protokolliert.
 Ein bereits verbrauchter Callback-Code wird nicht erneut ausgetauscht;
 nach einem Fehler den Einrichtungsablauf neu beginnen.
+Die Token-Antwort kann die Konto-ID als `uid` (Methodendokumentation) oder
+`userid` (offizielles JavaScript-SDK) liefern. Beide Schreibweisen werden
+unterstützt; fehlende, ungültige oder widersprüchliche IDs bleiben abgewiesen.
+Die anschließende `userinfo`-Abfrage muss dieselbe Konto-ID bestätigen.
 Wenn `PCLOUD_USER_ID` bereits gesetzt ist, muss die Freigabe genau zu diesem
 Konto passen. Ungültige oder unvollständige aktivierte Konfiguration verhindert
 den Prozessstart. Deshalb alle Werte zusammen speichern und deployen.
