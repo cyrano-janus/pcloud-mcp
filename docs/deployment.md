@@ -2,8 +2,10 @@
 
 Ziel: eine einzelne Instanz `pcloud-mcp` in Frankfurt, zunächst nur lesend.
 `render-secure.yaml` ist die reproduzierbare Definition des vollständigen Dienstes.
-`render.yaml` erhält vorerst den vorhandenen Bereitschaftsdienst (kein Zugriff auf
-pCloud, `/mcp` immer 503). Er benötigt keine Geheimnisse. Der Dienst ist erst nutzbar,
+`render.yaml` erhält standardmäßig den vorhandenen Bereitschaftsdienst (kein Zugriff
+auf pCloud, `/mcp` 503). Der bestehende native Dienst kann jetzt mit vollständiger
+OAuth-Konfiguration explizit aktiviert werden, siehe [MCP-Anmeldung](mcp-login.md).
+Dafür ist keine Docker-Migration nötig. Er benötigt keine Geheimnisse. Der Dienst ist erst nutzbar,
 wenn pCloud- und OAuth-Zugangsdaten vollständig eingerichtet und geprüft sind.
 
 ## Voraussetzungen und konkrete Einrichtung

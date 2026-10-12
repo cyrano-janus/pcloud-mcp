@@ -1,5 +1,5 @@
 # Readiness service with explicitly disabled hosted provider onboarding.
-# /mcp stays 503 until the protected transport is configured and verified.
+# Set PCLOUD_MCP_ENABLED=true only after complete OAuth configuration and verification.
 services:
   - type: web
     name: pcloud-mcp
@@ -14,4 +14,6 @@ services:
 
     envVars:
       - key: PCLOUD_SETUP_ENABLED
+        value: 'false'
+      - key: PCLOUD_MCP_ENABLED
         value: 'false'

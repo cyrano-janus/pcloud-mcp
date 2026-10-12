@@ -1,6 +1,6 @@
 // Package remote is an OAuth resource server for one explicitly bound owner.
 // Token issuance, consent, PKCE, rotation and revocation belong to an external
-// OAuth authorization server. Introspection is performed on every request.
+// OAuth authorization server. Choose request-time introspection or signed JWTs.
 package remote
 
 import (
@@ -40,15 +40,25 @@ func Validate(cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	endpoint, err := secureURL(cfg.IntrospectionURL)
+	if (cfg.JWKSURL == "") == (cfg.IntrospectionURL == "") {
+		return errors.New("configure exactly one OAuth verifier")
+	}
+	endpointURL := cfg.IntrospectionURL
+	if cfg.JWKSURL != "" {
+		endpointURL = cfg.JWKSURL
+	}
+	endpoint, err := secureURL(endpointURL)
 	if err != nil {
 		return err
 	}
 	if endpoint.Host != issuer.Host {
-		return errors.New("introspection endpoint must share the configured issuer host")
+		return errors.New("OAuth verifier endpoint must share the configured issuer host")
 	}
-	if cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "" || cfg.OAuthSubject == "" || cfg.UserID <= 0 {
+	if cfg.OAuthSubject == "" || cfg.UserID <= 0 {
 		return errors.New("complete OAuth owner binding required")
+	}
+	if cfg.IntrospectionURL != "" && (cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "") {
+		return errors.New("introspection client credentials required")
 	}
 	host, _, err := net.SplitHostPort(cfg.Listen)
 	if err != nil {
@@ -118,7 +128,7 @@ func verifier(cfg config.Config, client *http.Client) auth.TokenVerifier {
 			return nil, auth.ErrInvalidToken
 		}
 		now := time.Now().Unix()
-		if !info.Active || info.Issuer != cfg.Issuer || info.Subject != cfg.OAuthSubject || !slices.Contains(info.Audience, cfg.PublicURL) || !strings.EqualFold(info.Type, "Bearer") || info.Expires <= now || info.Issued <= 0 || info.Issued > now+30 || info.Expires-info.Issued > 900 || info.NotBefore > now {
+		if !info.Active || info.Issuer != cfg.Issuer || info.Subject != cfg.OAuthSubject || !slices.Contains(info.Audience, cfg.PublicURL) || !strings.EqualFold(info.Type, "Bearer") || info.Expires <= now || info.Issued <= 0 || info.Issued > now+30 || info.Expires <= info.Issued || info.Expires-info.Issued > 900 || info.NotBefore > now {
 			return nil, auth.ErrInvalidToken
 		}
 		return &auth.TokenInfo{UserID: info.Subject, Scopes: strings.Fields(info.Scope), Expiration: time.Unix(info.Expires, 0)}, nil
@@ -146,7 +156,11 @@ func newHandler(cfg config.Config, server *mcp.Server, client *http.Client) (htt
 		ctx := policy.WithPrincipal(r.Context(), policy.Principal{UserID: cfg.UserID, Write: slices.Contains(info.Scopes, "files:write")})
 		stream.ServeHTTP(w, r.WithContext(ctx))
 	})
-	secured := auth.RequireBearerToken(verifier(cfg, client), &auth.RequireBearerTokenOptions{ResourceMetadataURL: metadataURL, Scopes: []string{"files:read"}})(bound)
+	verifyToken := verifier(cfg, client)
+	if cfg.JWKSURL != "" {
+		verifyToken = jwtVerifier(cfg, client)
+	}
+	secured := auth.RequireBearerToken(verifyToken, &auth.RequireBearerTokenOptions{ResourceMetadataURL: metadataURL, Scopes: []string{"files:read"}})(bound)
 	mux := http.NewServeMux()
 	mux.Handle("/mcp", secured)
 	scopes := []string{"files:read"}

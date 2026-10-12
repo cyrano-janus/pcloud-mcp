@@ -83,7 +83,7 @@ func TestTokenValidation(t *testing.T) {
 		value     any
 		valid     bool
 	}{
-		{"valid", "", nil, true}, {"inactive", "active", false, false}, {"wrong audience", "aud", "https://other.example.com/mcp", false}, {"wrong issuer", "iss", "https://evil.example.com", false}, {"wrong subject", "sub", "other", false}, {"expired", "exp", time.Now().Add(-time.Minute).Unix(), false}, {"unbounded lifetime", "exp", time.Now().Add(time.Hour).Unix(), false}, {"missing expiry", "exp", 0, false}, {"future token", "nbf", time.Now().Add(time.Hour).Unix(), false}, {"refresh token", "token_type", "refresh_token", false},
+		{"valid", "", nil, true}, {"inactive", "active", false, false}, {"wrong audience", "aud", "https://other.example.com/mcp", false}, {"wrong issuer", "iss", "https://evil.example.com", false}, {"wrong subject", "sub", "other", false}, {"expired", "exp", time.Now().Add(-time.Minute).Unix(), false}, {"unbounded lifetime", "exp", time.Now().Add(time.Hour).Unix(), false}, {"missing expiry", "exp", 0, false}, {"negative token lifetime", "iat", time.Now().Add(10 * time.Minute).Unix(), false}, {"future token", "nbf", time.Now().Add(time.Hour).Unix(), false}, {"refresh token", "token_type", "refresh_token", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			data := claims()

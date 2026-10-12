@@ -90,6 +90,25 @@ MUTATIONS = [
      'owner > 0 && owner != id', 'false',
      "./internal/pcloud", "TestOAuthCredentialIdentityFormats"),
 
+    ("native activation flag bypassed", "cmd/pcloud-remote/main.go",
+     'enabled != "true" || get("RENDER") != "true"', 'false',
+     "./cmd/pcloud-remote", "TestRemoteActivationBoundaries"),
+    ("native setup separation bypassed", "cmd/pcloud-remote/main.go",
+     'setup != "" && setup != "false"', 'setup != "" && false',
+     "./cmd/pcloud-remote", "TestRemoteActivationBoundaries"),
+    ("JWT signature check disabled", "internal/remote/jwt.go",
+     'SupportedSigningAlgs: []string{"RS256"}', 'SupportedSigningAlgs: []string{"RS256"}, InsecureSkipSignatureCheck: true',
+     "./internal/remote", "TestJWTSignatureAndBinding"),
+    ("JWT owner binding bypassed", "internal/remote/jwt.go",
+     'token.Subject != cfg.OAuthSubject', 'false',
+     "./internal/remote", "TestJWTSignatureAndBinding"),
+    ("JWT audience check bypassed", "internal/remote/jwt.go",
+     'ClientID: cfg.PublicURL', 'ClientID: cfg.PublicURL, SkipClientIDCheck: true',
+     "./internal/remote", "TestJWTSignatureAndBinding"),
+    ("provider preflight bypassed", "internal/server/server.go",
+     'if _, err := svc.List(checkCtx, cfg.RootFolderID, 0, 1); err != nil {',
+     'if _, err := svc.List(checkCtx, cfg.RootFolderID, 0, 1); err != nil && false {',
+     "./internal/server", "TestProviderPreflightRejectsUnownedRoot"),
 ]
 
 def test(work, package, case):

@@ -19,6 +19,7 @@ type Config struct {
 	Transport, Listen, PublicURL                                             string
 	TLSCert, TLSKey                                                          string
 	Issuer, IntrospectionURL, OAuthClientID, OAuthClientSecret, OAuthSubject string
+	JWKSURL                                                                  string
 }
 
 // Load never includes environment values in errors. A present but empty value

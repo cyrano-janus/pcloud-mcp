@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"github.com/cyrano-janus/pcloud-mcp/internal/config"
 	"github.com/cyrano-janus/pcloud-mcp/internal/onboarding"
+	"github.com/cyrano-janus/pcloud-mcp/internal/remote"
+	"github.com/cyrano-janus/pcloud-mcp/internal/server"
 	"log"
 	"net/http"
 	"os"
@@ -59,13 +61,13 @@ func run(ctx context.Context, port string) error {
 	if len(port) > 5 {
 		return errors.New("invalid PORT")
 	}
-	setup, err := setupFromEnv()
+	activeHandler, err := runtimeHandler(ctx, os.LookupEnv, server.HTTPHandler)
 	if err != nil {
 		return err
 	}
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           handlerWithSetup(setup),
+		Handler:           activeHandler,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -139,4 +141,46 @@ func setupFromEnv() (http.Handler, error) {
 		}
 	}
 	return onboarding.New(onboarding.Config{Origin: os.Getenv("RENDER_EXTERNAL_URL"), ClientID: os.Getenv("PCLOUD_CLIENT_ID"), ClientSecret: secret, SetupSecret: setupSecret, EncryptionKey: encryptionKey, ExpectedUserID: owner})
+}
+
+// runtimeHandler makes activation explicit; incomplete configuration never opens MCP.
+func runtimeHandler(ctx context.Context, lookup func(string) (string, bool), build func(context.Context, config.Config) (http.Handler, error)) (http.Handler, error) {
+	get := func(k string) string { v, _ := lookup(k); return v }
+	enabled := get("PCLOUD_MCP_ENABLED")
+	if enabled == "" || enabled == "false" {
+		setup, err := setupFromEnv()
+		if err != nil {
+			return nil, err
+		}
+		return handlerWithSetup(setup), nil
+	}
+	if enabled != "true" || get("RENDER") != "true" {
+		return nil, errors.New("remote activation requires an explicit flag and Render runtime")
+	}
+	if setup := get("PCLOUD_SETUP_ENABLED"); setup != "" && setup != "false" {
+		return nil, errors.New("disable provider setup before activating MCP")
+	}
+	if writes := get("PCLOUD_ENABLE_WRITES"); writes != "" && writes != "false" {
+		return nil, errors.New("native remote activation is read-only")
+	}
+	// Derive the deployed transport, rather than trusting an accidental stdio default.
+	derived := func(k string) (string, bool) {
+		switch k {
+		case "PCLOUD_MCP_TRANSPORT":
+			return "http", true
+		case "PCLOUD_MCP_TLS_PROXY":
+			return "render", true
+		case "PCLOUD_ENABLE_WRITES":
+			return "false", true
+		}
+		return lookup(k)
+	}
+	cfg, err := config.Load(derived)
+	if err != nil {
+		return nil, err
+	}
+	if err := remote.Validate(cfg); err != nil {
+		return nil, err
+	}
+	return build(ctx, cfg)
 }

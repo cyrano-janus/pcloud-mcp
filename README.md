@@ -12,14 +12,13 @@ bereitgestellt: https://pcloud-mcp-ppew.onrender.com.
 | Gehosteter Dienst | HTTPS-Bereitschaftsdienst; `GET /healthz` liefert 200 |
 | Öffentlicher MCP-Endpunkt | `/mcp` bleibt mit 503 gesperrt; keine öffentlichen Dateioperationen |
 | Gehostete pCloud-Einrichtung | Implementiert, derzeit deaktiviert; `/setup/pcloud` liefert 503 |
-| pCloud-App | `Ppcloud-mcp-cyrano` laut Besitzer freigegeben; Zugangskonfiguration und reale Verbindung noch offen |
+| pCloud-App | `Ppcloud-mcp-cyrano` freigegeben; reale Kontofreigabe erfolgreich, importiertes Paket noch nicht im Dateibetrieb geprüft |
 | Lokaler MCP-Server | stdio-Transport; Datei-Tools nach eigener Konto- und Ordnerkonfiguration |
 | Vollständiger Remote-MCP-Server | Streamable HTTP und OAuth-Zugriffsschutz implementiert, noch nicht im Live-Dienst aktiviert |
 
 **Der Render-Dienst ist noch kein nutzbarer pCloud-Dateizugriff für ChatGPT.**
-Für diesen Betrieb fehlen die pCloud-Zugangskonfiguration,
-die Einrichtung des externen OAuth-Anmeldedienstes sowie reale Konto- und
-Client-Tests. Die gehostete pCloud-Freigabe allein schaltet `/mcp` nicht frei.
+Für diesen Betrieb fehlen die Einrichtung des externen OAuth-Anmeldedienstes
+sowie der reale Test der gespeicherten Credentials, des Stammordners und des MCP-Clients. Die gehostete pCloud-Freigabe allein schaltet `/mcp` nicht frei.
 
 ## Implementierung
 
@@ -127,8 +126,10 @@ kostenloser Einstiegsplan, `/healthz`, Deploy nach erfolgreichen CI-Prüfungen.
 Der Free-Plan kann Kaltstarts haben; er ist kein Verfügbarkeitsversprechen.
 
 [`render.yaml`](render.yaml) beschreibt den aktuell betriebenen Bereitschaftsdienst
-`cmd/pcloud-remote`: `/healthz` antwortet, `/mcp` bleibt mit 503 gesperrt.
-Er wird erst nach vollständiger Einrichtung durch den eigentlichen Dienst ersetzt.
+`cmd/pcloud-remote`: `/healthz` antwortet, `/mcp` bleibt ohne explizite Aktivierung mit 503 gesperrt.
+Die [MCP-Anmeldung](docs/mcp-login.md) beschreibt die Aktivierung im vorhandenen
+nativen Render-Dienst und den noch erforderlichen Anbieterzugang.
+Er wird erst nach vollständiger Einrichtung im bestehenden Dienst aktiviert.
 
 Die tatsächlichen Service-Einstellungen und Abweichungen von den Vorlagen stehen
 im [Render-Status](docs/render-status.md): Deployments starten aktuell bei einem
@@ -136,7 +137,7 @@ Commit; das Warten auf erfolgreiche CI-Prüfungen und der Plattform-Health-Check
 `/healthz` sind noch nicht eingerichtet. Die Vorlagen enthalten diese Einstellungen.
 
 Remote-Zugriffe benötigen zusätzlich einen externen OAuth-2.1-Anmeldedienst mit
-Token-Introspection. pCloud-Zugangstoken und MCP-Client-Zugangstoken sind getrennt.
+Token-Introspection oder signierten RS256-JWTs. pCloud-Zugangstoken und MCP-Client-Zugangstoken sind getrennt.
 Fehlende Konfiguration verhindert den Start. Pro Instanz ist genau ein Besitzer
 mit einem Ordnerbaum gebunden; dies ist kein mandantenfähiger Dienst.
 
@@ -150,7 +151,7 @@ ersetzt aber keine reale pCloud-Freigabe oder ChatGPT-/Claude-Abnahme.
 
 ```sh
 make check       # Build, Race-Tests, vet, Module, Protokoll-Smoke-Test
-make fuzz        # sechs begrenzte Fuzz-Ziele
+make fuzz        # sieben begrenzte Fuzz-Ziele
 make mutations   # gezielte sicherheitsrelevante Mutationen
 make security    # installierte govulncheck- und gitleaks-Werkzeuge
 ```

@@ -94,14 +94,23 @@ func loadRuntime(cfg Config, lookup func(string) (string, bool)) (Config, error)
 	cfg.TLSKey = get("PCLOUD_MCP_TLS_KEY")
 	cfg.Issuer = get("PCLOUD_MCP_OAUTH_ISSUER")
 	cfg.IntrospectionURL = get("PCLOUD_MCP_INTROSPECTION_URL")
+	cfg.JWKSURL = get("PCLOUD_MCP_JWKS_URL")
 	cfg.OAuthClientID = get("PCLOUD_MCP_OAUTH_CLIENT_ID")
 	cfg.OAuthSubject = get("PCLOUD_MCP_OAUTH_SUBJECT")
 	cfg.OAuthClientSecret, err = secret("PCLOUD_MCP_OAUTH_CLIENT_SECRET", lookup)
 	if err != nil {
 		return cfg, err
 	}
-	if cfg.Transport == "http" && (cfg.PublicURL == "" || cfg.Issuer == "" || cfg.IntrospectionURL == "" || cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "" || cfg.OAuthSubject == "") {
-		return cfg, errors.New("HTTP requires public URL, OAuth issuer, introspection endpoint, client credentials and allowed subject")
+	if cfg.Transport == "http" {
+		if cfg.PublicURL == "" || cfg.Issuer == "" || cfg.OAuthSubject == "" {
+			return cfg, errors.New("HTTP requires public URL, OAuth issuer and allowed subject")
+		}
+		if (cfg.JWKSURL == "") == (cfg.IntrospectionURL == "") {
+			return cfg, errors.New("configure exactly one OAuth verifier: JWKS or introspection")
+		}
+		if cfg.IntrospectionURL != "" && (cfg.OAuthClientID == "" || cfg.OAuthClientSecret == "") {
+			return cfg, errors.New("introspection client credentials required")
+		}
 	}
 	return cfg, nil
 }

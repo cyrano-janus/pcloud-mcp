@@ -119,3 +119,41 @@ IDs sind erforderlich; widersprüchliche Aliase, Null-, String- und negative Wer
 werden abgewiesen. Race-Tests und alle **26** Mutationen bestanden lokal,
 einschließlich der Mutation, die widersprüchliche Konto-IDs akzeptiert. Das
 bestehende Provider-JSON-Fuzz-Ziel prüft zusätzlich den Token-Decoder.
+
+## Native Aktivierung und JWT-Anmeldung vom 12. Oktober 2026
+
+Die reale gehostete pCloud-Freigabe wurde durch die vom Betreiber gezeigte
+Erfolgsseite bestätigt. Zugangspaket und Schlüssel sind laut Betreiber in Render
+hinterlegt; die importierte Kombination und der erlaubte Stammordner bleiben
+bis zur Aktivierung und zum echten Zugriffstest unbestätigt.
+
+Neue Aktivierungstests wurden vor der Implementierung hinzugefügt (anfangs
+fehlende Funktion). Der bestehende native Prozess kann nach vollständiger
+OAuth-Konfiguration auf read-only MCP wechseln. Öffnung ohne Flag, fremde
+Runtime, paralleles Setup, Schreibfreigabe, defektes Paket, fremder Besitzer und
+fremder Verifier-Host werden abgewiesen. Ein eigener Preflight-Test verhindert
+Aktivierung mit fremdem pCloud-Konto oder nicht eigenem Stammordner.
+
+JWT-Tests verwenden echte RSA-Schlüssel, signierte Tokens und ein simuliertes
+JWKS-Transportziel. Falsche Signatur, fremder Benutzer, Audience und Issuer,
+fehlendes/futures `iat`, Ablauf, überlange Laufzeit, zukünftiges `nbf`, fehlender
+Lesescope, mehrdeutige Verifier-Konfiguration und ungültige/überlange JWKS sind
+abgewiesen. Diese Fixtures sind kein echter Descope-/ChatGPT-Interop-Nachweis.
+
+Lokal bestanden `make check` (Build, sämtliche Race-Tests, vet, Module,
+MCP-Protokoll-Smoke-Test), zusätzliche betroffene Race-Tests nach dem
+Preflight-Test, `go vet ./...`, `govulncheck ./...` ohne bekannte Schwachstellen
+und alle **32 gezielten Mutationen**. Ein zunächst überlebender Aktivierungs-
+Mutant führte zu einem vollständigen Konfigurationsfall mit ungültigem Flag;
+danach wurde er durch einen Testfehler erkannt. Ein syntaktisch ungültiger
+Setup-Mutant wurde so korrigiert, dass echte Testfehler statt Buildfehler zählen.
+
+Das neue JWT-Fuzz-Ziel bestand lokal 15 Sekunden mit **191.418 Ausführungen**.
+Die CI ergänzt es als siebtes 30-Sekunden-Fuzz-Ziel und führt alle 32 Mutationen
+sowie die vorhandenen Dependency-, Secret- und Container-Prüfungen aus.
+Der CI-Erfolg dieses neuen Commits ist separat zu prüfen.
+
+Für JWTs ist sofortiger Widerruf nicht nachgewiesen: lokale Prüfung kann ein
+vorher ausgestelltes Token bis zum Ablauf (höchstens 15 Minuten ab `iat`)
+akzeptieren. Reale Anmeldung, PKCE, Anbieter-Refresh, Widerruf, Schlüsselrotation
+und Read-only-Zugriff auf `mcp-test` sind noch Freigabekriterien.
