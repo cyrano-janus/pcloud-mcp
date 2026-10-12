@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
+	"github.com/cyrano-janus/pcloud-mcp/internal/onboarding"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +37,31 @@ func TestHealthAndFailClosedMCP(t *testing.T) {
 			if len(b) == 0 {
 				t.Error("expected disabled response")
 			}
+		}
+	}
+}
+
+func TestStartupDiagnosticsNeverExposeValues(t *testing.T) {
+	for _, key := range []string{"PCLOUD_CLIENT_ID", "PCLOUD_CLIENT_SECRET", "PCLOUD_SETUP_SECRET", "PCLOUD_TOKEN_ENCRYPTION_KEY", "RENDER_EXTERNAL_URL"} {
+		t.Run(key, func(t *testing.T) {
+			t.Setenv("PCLOUD_SETUP_ENABLED", "true")
+			t.Setenv("RENDER", "true")
+			t.Setenv("RENDER_EXTERNAL_URL", "https://service.example")
+			t.Setenv("PCLOUD_CLIENT_ID", "app")
+			t.Setenv("PCLOUD_CLIENT_SECRET", "private-provider-value")
+			t.Setenv("PCLOUD_SETUP_SECRET", strings.Repeat("a", 64))
+			t.Setenv("PCLOUD_TOKEN_ENCRYPTION_KEY", strings.Repeat("b", 64))
+			t.Setenv(key, "")
+			_, err := setupFromEnv()
+			message := startupDiagnostic(err)
+			if err == nil || !strings.Contains(message, key) || strings.Contains(message, "private-provider-value") {
+				t.Fatal("missing safe field diagnostic", message)
+			}
+		})
+	}
+	for _, err := range []error{errors.New("private-provider-value"), &onboarding.ConfigError{Field: "private-provider-value"}} {
+		if strings.Contains(startupDiagnostic(err), "private-provider-value") {
+			t.Fatal("unsafe diagnostic")
 		}
 	}
 }

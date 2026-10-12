@@ -30,6 +30,10 @@ Im bestehenden Render-Service unter Environment konfigurieren:
 Die beiden neuen Schlüssel mit einem sicheren Passwortmanager zufällig erzeugen;
 keine selbst gewählten Passwörter und niemals denselben Wert verwenden. Dies
 geht auch am Telefon. Schlüssel, Client-Secret und Tokens nicht im Chat teilen.
+Bei einem Startfehler nennt das Anwendungslog nur den Namen einer fehlenden oder
+ungültigen Einstellung (`startup configuration invalid: ...`), niemals ihren
+Wert. Für die beiden zufälligen Schlüssel gelten 32–128 druckbare ASCII-Zeichen
+ohne Leerzeichen oder Zeilenumbrüche; sie müssen unterschiedlich sein.
 Wenn `PCLOUD_USER_ID` bereits gesetzt ist, muss die Freigabe genau zu diesem
 Konto passen. Ungültige oder unvollständige aktivierte Konfiguration verhindert
 den Prozessstart. Deshalb alle Werte zusammen speichern und deployen.

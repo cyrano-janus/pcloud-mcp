@@ -31,6 +31,12 @@ type Config struct {
 	Origin, ClientID, ClientSecret, SetupSecret, EncryptionKey string
 	ExpectedUserID                                             int64
 }
+
+// ConfigError identifies a configuration field without including its value.
+type ConfigError struct{ Field string }
+
+func (e *ConfigError) Error() string { return "invalid hosted setup configuration: " + e.Field }
+
 type exchangeFunc func(context.Context, string, string, string, string) (credential.Data, error)
 type session struct {
 	state   string
@@ -52,8 +58,22 @@ type Handler struct {
 func New(cfg Config) (*Handler, error) { return newHandler(cfg, exchange) }
 func newHandler(cfg Config, fn exchangeFunc) (*Handler, error) {
 	u, err := url.Parse(cfg.Origin)
-	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || u.Opaque != "" || cfg.ExpectedUserID < 0 || cfg.ClientID == "" || len(cfg.ClientID) > 256 || cfg.ClientSecret == "" || !credential.ValidKey(cfg.SetupSecret) || !credential.ValidKey(cfg.EncryptionKey) || cfg.SetupSecret == cfg.EncryptionKey {
-		return nil, errors.New("complete secure hosted pCloud setup configuration required")
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || u.Opaque != "" {
+		return nil, &ConfigError{Field: "RENDER_EXTERNAL_URL"}
+	}
+	for _, check := range []struct {
+		field   string
+		invalid bool
+	}{
+		{"PCLOUD_USER_ID", cfg.ExpectedUserID < 0},
+		{"PCLOUD_CLIENT_ID", cfg.ClientID == "" || len(cfg.ClientID) > 256},
+		{"PCLOUD_CLIENT_SECRET", cfg.ClientSecret == ""},
+		{"PCLOUD_SETUP_SECRET", !credential.ValidKey(cfg.SetupSecret)},
+		{"PCLOUD_TOKEN_ENCRYPTION_KEY", !credential.ValidKey(cfg.EncryptionKey) || cfg.SetupSecret == cfg.EncryptionKey},
+	} {
+		if check.invalid {
+			return nil, &ConfigError{Field: check.field}
+		}
 	}
 	h := &Handler{cfg: cfg, host: u.Host, sessions: map[string]*session{}, now: time.Now, exchange: fn, limit: rate.NewLimiter(1, 5), mux: http.NewServeMux()}
 	if _, err := rand.Read(h.proofKey[:]); err != nil {

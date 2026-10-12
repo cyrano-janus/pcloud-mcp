@@ -91,10 +91,21 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx, os.Getenv("PORT")); err != nil {
-		log.Print("HTTP readiness service stopped")
+		log.Print(startupDiagnostic(err))
 		fmt.Fprintln(os.Stderr, "startup or shutdown failed")
 		os.Exit(1)
 	}
+}
+
+func startupDiagnostic(err error) string {
+	var cfgErr *onboarding.ConfigError
+	if errors.As(err, &cfgErr) {
+		switch cfgErr.Field {
+		case "PCLOUD_SETUP_ENABLED", "RENDER", "RENDER_EXTERNAL_URL", "PCLOUD_CLIENT_ID", "PCLOUD_CLIENT_SECRET", "PCLOUD_SETUP_SECRET", "PCLOUD_TOKEN_ENCRYPTION_KEY", "PCLOUD_USER_ID":
+			return "startup configuration invalid: " + cfgErr.Field
+		}
+	}
+	return "HTTP readiness service stopped"
 }
 
 func setupFromEnv() (http.Handler, error) {
@@ -102,26 +113,29 @@ func setupFromEnv() (http.Handler, error) {
 	if enabled == "" || enabled == "false" {
 		return nil, nil
 	}
-	if enabled != "true" || os.Getenv("RENDER") != "true" {
-		return nil, errors.New("hosted setup requires explicit enablement in Render")
+	if enabled != "true" {
+		return nil, &onboarding.ConfigError{Field: "PCLOUD_SETUP_ENABLED"}
+	}
+	if os.Getenv("RENDER") != "true" {
+		return nil, &onboarding.ConfigError{Field: "RENDER"}
 	}
 	secret, err := config.SecretFromEnv("PCLOUD_CLIENT_SECRET")
 	if err != nil {
-		return nil, err
+		return nil, &onboarding.ConfigError{Field: "PCLOUD_CLIENT_SECRET"}
 	}
 	setupSecret, err := config.SecretFromEnv("PCLOUD_SETUP_SECRET")
 	if err != nil {
-		return nil, err
+		return nil, &onboarding.ConfigError{Field: "PCLOUD_SETUP_SECRET"}
 	}
 	encryptionKey, err := config.SecretFromEnv("PCLOUD_TOKEN_ENCRYPTION_KEY")
 	if err != nil {
-		return nil, err
+		return nil, &onboarding.ConfigError{Field: "PCLOUD_TOKEN_ENCRYPTION_KEY"}
 	}
 	var owner int64
 	if value := os.Getenv("PCLOUD_USER_ID"); value != "" {
 		owner, err = strconv.ParseInt(value, 10, 64)
 		if err != nil || owner <= 0 {
-			return nil, errors.New("invalid configured provider owner")
+			return nil, &onboarding.ConfigError{Field: "PCLOUD_USER_ID"}
 		}
 	}
 	return onboarding.New(onboarding.Config{Origin: os.Getenv("RENDER_EXTERNAL_URL"), ClientID: os.Getenv("PCLOUD_CLIENT_ID"), ClientSecret: secret, SetupSecret: setupSecret, EncryptionKey: encryptionKey, ExpectedUserID: owner})

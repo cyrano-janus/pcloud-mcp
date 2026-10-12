@@ -77,6 +77,9 @@ MUTATIONS = [
     ("health independence removed", "internal/remote/http.go",
      'r.URL.Path == "/healthz"', 'r.URL.Path == "/unused-health"',
      "./internal/remote", "TestHealthIndependentOfPublicRequestBudget"),
+    ("unsafe startup error exposed", "cmd/pcloud-remote/main.go",
+     'return "HTTP readiness service stopped"', 'return err.Error()',
+     "./cmd/pcloud-remote", "TestStartupDiagnosticsNeverExposeValues"),
 
 ]
 
