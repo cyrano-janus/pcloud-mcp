@@ -4,28 +4,34 @@ MCP-Server in Go für den kontrollierten Zugriff auf das eigene pCloud-Konto.
 
 ## Aktuell nutzbarer Stand
 
-Stand: **12. Oktober 2026**. Der Dienst ist auf **Render Free in Frankfurt**
+Stand: **13. Oktober 2026**. Der Dienst ist auf **Render Free in Frankfurt**
 bereitgestellt: https://pcloud-mcp-ppew.onrender.com.
 
 | Bereich | Aktueller Stand |
 | --- | --- |
-| Gehosteter Dienst | HTTPS-Bereitschaftsdienst; `GET /healthz` liefert 200 |
-| Öffentlicher MCP-Endpunkt | `/mcp` bleibt mit 503 gesperrt; keine öffentlichen Dateioperationen |
+| Gehosteter Dienst | HTTPS-MCP-Dienst im geschützten Lesebetrieb; `GET /healthz` liefert 200 |
+| Öffentlicher MCP-Endpunkt | `/mcp` verlangt OAuth; ohne gültiges Token 401 |
 | Gehostete pCloud-Einrichtung | Implementiert, derzeit deaktiviert; `/setup/pcloud` liefert 503 |
-| pCloud-App | `Ppcloud-mcp-cyrano` freigegeben; reale Kontofreigabe erfolgreich, importiertes Paket noch nicht im Dateibetrieb geprüft |
+| pCloud-App | `Ppcloud-mcp-cyrano` freigegeben; reale Kontofreigabe und importierte Credentials mit Konto-/Ordnerzugriff geprüft |
 | Lokaler MCP-Server | stdio-Transport; Datei-Tools nach eigener Konto- und Ordnerkonfiguration |
-| Vollständiger Remote-MCP-Server | Streamable HTTP und OAuth-Zugriffsschutz implementiert, noch nicht im Live-Dienst aktiviert |
+| Vollständiger Remote-MCP-Server | Streamable HTTP mit Descope-OAuth aktiviert; reale ChatGPT-Tool-Aufrufe erfolgreich |
 
-**Der Render-Dienst ist noch kein nutzbarer pCloud-Dateizugriff für ChatGPT.**
-Für diesen Betrieb fehlen die Einrichtung des externen OAuth-Anmeldedienstes
-sowie der reale Test der gespeicherten Credentials, des Stammordners und des MCP-Clients. Die gehostete pCloud-Freigabe allein schaltet `/mcp` nicht frei.
+**Der geschützte Lesezugriff ist in ChatGPT nutzbar.** Reale Aufrufe von `whoami`,
+`list_folder` und `get_file_info` waren erfolgreich. Eine Stichprobe listete fünf
+WEBP-Dateien aus `mcp-test`; weitere Einträge wurden als paginiert angezeigt.
+Die Kontowurzel außerhalb des erlaubten Ordners wurde verweigert. Bilder wurden
+nicht heruntergeladen oder analysiert. Schreibfunktionen bleiben deaktiviert.
+
+Token-Refresh, tatsächlicher Widerruf, Schlüsselrotation, Textlesen, Suche und
+Claude-Interoperabilität sind noch separat live zu prüfen. Lokale JWT-Prüfung
+kann bereits ausgestellte Tokens bis zum Ablauf (maximal 15 Minuten) akzeptieren.
 
 ## Implementierung
 
 **Status: 0.3.0-rc.1.** Implementiert sind lokale Nutzung über stdio und ein
 OAuth-geschützter HTTP-Transport. Die Produktspezifikation bleibt
-[0.2.0-draft](SPEC.md). Ein echter pCloud-Konto- und ChatGPT/Claude-End-to-End-Test
-steht noch aus; dieser Release Candidate ist keine produktive Freigabe.
+[0.2.0-draft](SPEC.md). Konto-, Ordner- und Metadatenzugriff über ChatGPT sind live geprüft. Weitere
+Abnahmen stehen aus; dieser Release Candidate ist keine umfassende produktive Freigabe.
 
 Go **1.26.9**, offizielles **MCP-Go-SDK v1.8.0**, MCP **2026-07-28**.
 Der Server aktiviert ausschließlich diese MCP-Version. Ältere Clients sind damit
@@ -34,7 +40,7 @@ nicht automatisch kompatibel. Versionsstand zuletzt am 9. Oktober 2026 geprüft.
 ## Implementierte Datei-Tools
 
 Diese Tools gehören zum vollständigen Server. Sie sind im aktuellen
-Render-Bereitschaftsdienst nicht verfügbar.
+Render-Dienst im Lesebetrieb auf die fünf Lese-Tools beschränkt.
 
 | Tool | Verhalten |
 | --- | --- |
@@ -63,7 +69,7 @@ als verschlüsseltes Paket zur geschützten Übernahme in Render bereitgestellt.
 
 Die konkreten Schritte und verbleibenden Grenzen stehen in
 [Gehostete pCloud-Einrichtung](docs/hosted-pcloud-setup.md). Die externe OAuth-
-Anmeldung des MCP-Clients bleibt separat; Dateioperationen sind noch nicht live.
+Anmeldung des MCP-Clients bleibt separat; Leseoperationen sind live geprüft; Schreiben bleibt gesperrt.
 
 ## Lokal starten
 
@@ -126,10 +132,11 @@ kostenloser Einstiegsplan, `/healthz`, Deploy nach erfolgreichen CI-Prüfungen.
 Der Free-Plan kann Kaltstarts haben; er ist kein Verfügbarkeitsversprechen.
 
 [`render.yaml`](render.yaml) beschreibt den aktuell betriebenen Bereitschaftsdienst
-`cmd/pcloud-remote`: `/healthz` antwortet, `/mcp` bleibt ohne explizite Aktivierung mit 503 gesperrt.
+`cmd/pcloud-remote`: Ohne Aktivierung bleibt `/mcp` gesperrt. Im bestehenden
+Dienst ist OAuth-geschütztes MCP jetzt ausdrücklich aktiviert.
 Die [MCP-Anmeldung](docs/mcp-login.md) beschreibt die Aktivierung im vorhandenen
 nativen Render-Dienst und den noch erforderlichen Anbieterzugang.
-Er wird erst nach vollständiger Einrichtung im bestehenden Dienst aktiviert.
+Die vollständige Anbieter- und Besitzerkonfiguration ist im bestehenden Dienst gesetzt.
 
 Die tatsächlichen Service-Einstellungen und Abweichungen von den Vorlagen stehen
 im [Render-Status](docs/render-status.md): Deployments starten aktuell bei einem

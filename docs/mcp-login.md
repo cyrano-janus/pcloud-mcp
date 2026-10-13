@@ -2,8 +2,8 @@
 
 Stand: 12. Oktober 2026. Die reale pCloud-Kontofreigabe wurde durch die
 Erfolgsseite bestätigt; der Betreiber meldete das Zugangspaket als in Render
-gespeichert. Die importierten Credentials wurden noch nicht im Dateibetrieb
-getestet. Die pCloud-Einrichtung ist abgeschaltet. Der zugelassene Ordner ist
+gespeichert. Die importierten Credentials wurden anschließend am 13. Oktober mit echten
+ChatGPT-Aufrufen für Konto-, Ordner- und Metadatenzugriff erfolgreich geprüft. Die pCloud-Einrichtung ist abgeschaltet. Der zugelassene Ordner ist
 `mcp-test`, ID `27076377653`. Das ersetzt keine MCP-Client-Anmeldung.
 
 ## Umsetzung und Freigabe
@@ -27,7 +27,8 @@ Die offizielle [Preisseite](https://www.descope.com/pricing) nennt einen
 OIDC-Federation und begrenzten aktiven Consents/Tokens. Vor Erstellung im
 Dashboard den tatsächlichen Free-Tarif und die für MCP benötigten Funktionen
 prüfen; keine Pro-Buchung und kein kostenpflichtiges Add-on aktivieren.
-Diese Dokumentation behauptet kein bereits angelegtes Descope-Projekt.
+Das Descope-Free-Projekt und die MCP-Ressource wurden inzwischen vom Betreiber
+angelegt; Discovery und Besitzerbindung wurden konfiguriert.
 
 Descope dokumentiert [MCP-Ressourcen und OAuth](https://docs.descope.com/identity-federation/inbound-apps/authorization-server)
 mit Resource Indicators, Discovery, JWKS und Authorization Code Flow.
@@ -59,9 +60,8 @@ falsche Audience und abgelaufene Tokens werden abgewiesen.
    E-Mail-Adresse, Verwaltungsbenutzer oder pCloud-User-ID sind kein Ersatz für
    dieses OAuth-Subject. Ohne feste Subject-Bindung ist die Aktivierung verboten.
 
-Diese Schritte können erst nach Konto-/Projektanlage tatsächlich ausgeführt
-werden. Es liegen noch kein Verwaltungszugang, kein konkreter Issuer und keine
-Besitzer-Identität vor. Keine Secrets in Chat oder Git ablegen.
+Die Erstkonfiguration ist inzwischen durchgeführt; die Anleitung oben bleibt
+für eine erneute Einrichtung gültig. Keine Secrets in Chat oder Git ablegen.
 
 ### Konfiguration in Render
 

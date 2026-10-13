@@ -173,3 +173,20 @@ enthält ausschließlich den vollständigen Fingerprint dieses historischen
 Testfundes (Commit, Pfad, Regel, Zeile). Keine Datei, kein Testverzeichnis und
 keine Erkennungsregel wird pauschal ausgenommen. Der vollständige Git-History-
 Scan mit den bestehenden Standardregeln wird weiterhin in CI ausgeführt.
+
+
+## Reale ChatGPT-Abnahme vom 13. Oktober 2026
+
+CI 38377874006 ist erfolgreich. Der Betreiber meldete die ChatGPT-Anmeldung als
+fehlerfrei; danach waren die fünf Lese-Tools in dieser Sitzung verfügbar.
+Tatsächlich ausgeführte OAuth-geschützte Aufrufe bestätigten das konfigurierte
+pCloud-Konto, listeten eine paginierte Stichprobe von fünf eigenen WEBP-Dateien
+im erlaubten Ordner und lasen die Metadaten einer daraus ausgewählten Datei.
+Ein kontrollierter Zugriff auf Ordner-ID 0 außerhalb des erlaubten Stammordners
+wurde mit `object outside the permitted owned folder tree` verweigert.
+Keine Bilder wurden heruntergeladen, keine Dateien geschrieben.
+
+Dies belegt reale ChatGPT-Authentifizierung und diese Lese-/Policy-Fälle,
+keine vollständige Penetrationsprüfung oder erfolgreiche Refresh-/Widerrufs-
+Abnahme. Suche, Textlesen, Schlüsselrotation, Refresh und Claude bleiben offen.
+Aktivierungsdeployment und externe HTTP-Negativtests: [Render-Status](render-status.md).

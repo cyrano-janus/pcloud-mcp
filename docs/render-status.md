@@ -1,4 +1,30 @@
-# Render-Status, geprüft am 9. Oktober 2026
+# Render-Status, geprüft am 13. Oktober 2026
+
+Der bestehende Free-Dienst in Frankfurt läuft jetzt mit OAuth-geschütztem,
+rein lesendem MCP. Die initiale Bereitschaftsprüfung unten ist historisch.
+
+| Prüfung des aktivierten Dienstes | Ergebnis |
+| --- | --- |
+| Aktivierungsdeployment | `dep-db6vp96k1f9s73boab30`, live |
+| Getesteter Implementierungscommit | `717b6bb301951173d7fb444579d4ef6fa74a99ad` |
+| CI des Implementierungscommits | [38377874006](https://github.com/cyrano-janus/pcloud-mcp/actions/runs/38377874006), erfolgreich |
+| HTTPS `/healthz` | 200 |
+| OAuth Protected Resource Metadata | 200, echte Descope-Issuer-Bindung, ausschließlich `files:read` |
+| Ohne Token / ungültiges Token | 401, Auth-Challenge |
+| Fremde Origin / Token im Query | 403 / 400 |
+| Reales ChatGPT-MCP `whoami` | Konfiguriertes pCloud-Konto bestätigt |
+| Reales `list_folder` | Fünf WEBP-Metadaten aus `mcp-test`; paginiert |
+| Reales `get_file_info` | Eigene Datei im erlaubten Ordner bestätigt |
+| Kontowurzel außerhalb des erlaubten Ordners | Verweigert, keine Einträge ausgegeben |
+
+Dateien wurden nicht verändert. Es wurden keine Bildinhalte heruntergeladen.
+Schreiben und die gehostete pCloud-Einrichtung bleiben abgeschaltet. Reale
+Anbieter-Refresh-/Widerrufs-/Rotationsprüfungen, Suche, Textlesen und Claude sind
+noch offen. Die lokale JWT-Prüfung garantiert keinen sofortigen Widerruf;
+bereits ausgestellte Tokens können bis zum Ablauf gültig bleiben.
+
+## Historische Erstbereitstellung vom 9. Oktober 2026
+
 
 ## Tatsächlicher Dienst
 
@@ -33,7 +59,7 @@ Redirect-Folgen:
 | `POST /mcp` | 503, Zugriff gesperrt |
 | `DELETE /mcp` | 503, Zugriff gesperrt |
 
-Dieser Dienst bietet ausschließlich Bereitschaft. Es sind keine pCloud-Tokens
+Zum damaligen Prüfzeitpunkt bot dieser Dienst ausschließlich Bereitschaft. Es sind keine pCloud-Tokens
 hinterlegt und keine Dateioperationen öffentlich verfügbar. Der vollständige
 Streamable-HTTP-/OAuth-Code ist im Repository vorhanden, aber hier noch nicht
 aktiviert. Reale OAuth-Anmeldung, Widerruf, pCloud-Zugriff und Client-Interoperabilität
