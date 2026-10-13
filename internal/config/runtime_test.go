@@ -6,6 +6,34 @@ import (
 	"testing"
 )
 
+func TestVideoFlag(t *testing.T) {
+	for _, value := range []string{"true", "false", "", "yes"} {
+		cfg, err := Load(func(k string) (string, bool) {
+			if k == "PCLOUD_ENABLE_VIDEO" {
+				return value, true
+			}
+			switch k {
+			case "PCLOUD_ACCESS_TOKEN":
+				return "fixture", true
+			case "PCLOUD_REGION":
+				return "eu", true
+			case "PCLOUD_USER_ID":
+				return "7", true
+			case "PCLOUD_ROOT_FOLDER_ID":
+				return "10", true
+			}
+			return "", false
+		})
+		if value == "true" || value == "false" {
+			if err != nil || cfg.EnableVideo != (value == "true") {
+				t.Fatal("flag incorrect")
+			}
+		} else if err == nil {
+			t.Fatal("invalid flag accepted")
+		}
+	}
+}
+
 func TestRuntimeConfig(t *testing.T) {
 	base := map[string]string{"PCLOUD_ACCESS_TOKEN": "test-value", "PCLOUD_REGION": "eu", "PCLOUD_USER_ID": "7", "PCLOUD_ROOT_FOLDER_ID": "10"}
 	for _, key := range []string{"PCLOUD_REGION", "PCLOUD_USER_ID", "PCLOUD_ROOT_FOLDER_ID"} {

@@ -24,6 +24,8 @@ jobs:
           go mod tidy
           git diff --exit-code -- go.mod go.sum
           test -z "$(gofmt -l cmd internal)"
+      - name: Install media test runtime
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y ffmpeg util-linux
       - name: Build, race tests and vet
         run: |
           python3 -m unittest discover -s scripts -p 'test_*.py'
@@ -40,6 +42,7 @@ jobs:
           go test ./internal/credential -run='^$' -fuzz=FuzzEnvelope -fuzztime=30s -parallel=2
           go test ./internal/pcloud -run='^$' -fuzz=FuzzOAuthCallback -fuzztime=30s -parallel=2
           go test ./internal/remote -run='^$' -fuzz=FuzzJWTRejectsUntrustedInput -fuzztime=30s -parallel=2
+          go test ./internal/media -run='^$' -fuzz=FuzzFramePositions -fuzztime=30s -parallel=2
           python3 scripts/mutation_test.py
       - name: Install pinned security tools
         run: |

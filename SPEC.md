@@ -253,3 +253,30 @@ Dateien sortieren ist eine überprüfbare Folge einzelner Operationen, kein
 unkontrolliertes Massen-Tool. Fehlt ein wirksamer Bestätigungsmechanismus für eine
 destruktive Aktion, wird sie verweigert. Eine spätere SPEC-Erweiterung ändert
 keine bestehenden Zugriffsrechte ohne ausdrückliche Betreiberentscheidung.
+
+
+## 12. Optionale Video-Vorschau außerhalb des v1.0-Standardprofils
+
+Auf Betreiberwunsch vom 2026-10-13 wird eine additive, opt-in Lese-Erweiterung
+`get_video_frames` implementiert. Sie verändert den Fünf-Tool-Vertrag und die
+Freigabekriterien für das Standardprofil nicht. `PCLOUD_ENABLE_VIDEO` ist
+standardmäßig false. Ein erweitertes Profil liefert sechs Lese-Tools und muss
+separat als solches benannt und getestet werden.
+
+Der Eingabevertrag ist `{file_id, seconds}`; ein bis vier streng aufsteigende,
+endliche Zeitpositionen zwischen 0 und 600 Sekunden. Ausgabe sind markierte,
+nicht vertrauenswürdige JPEG-Bildinhalte mit angeforderten, approximativen
+Zeitpositionen, keine automatische Tanzklassifikation. Metadaten enthalten
+keine privaten Downloadlinks oder Tokens. Nur eigene MP4/MOV/WebM-Dateien im
+freigegebenen Baum mit passendem MIME-Typ und maximal 128 MiB sind zulässig.
+Besitzer- und Dateiumfang werden vor dem Download geprüft; Dateiversion und
+Umfang werden anschließend erneut geprüft. Dies ist keine Provider-Snapshot-
+oder Sperrgarantie.
+
+Downloads verwenden intern ausschließlich validierte HTTPS-Hosts unter
+`.pcloud.com`, keine Redirects und das vorhandene Public-IP/DNS-Enforcement.
+Private temporäre Dateien werden nach jedem Ergebnis entfernt. Extraktion
+läuft einzeln, ohne geerbte Secrets, ohne Netzwerkprotokolle, mit Zeit-, CPU-,
+Adressraum- und Ausgabelimits. Vier Bilder zu maximal 128 KiB, maximal 640×360.
+Medien-Decoder müssen gepatcht werden; Prozesslimits sind keine vollständige
+Betriebssystem-Sandbox. Details und Nachweis: [Video-Vorschau](docs/video-preview.md).

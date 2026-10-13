@@ -15,6 +15,7 @@ fuzz:
 	go test ./internal/credential -run='^$$' -fuzz=FuzzEnvelope -fuzztime=30s -parallel=2
 	go test ./internal/pcloud -run='^$$' -fuzz=FuzzOAuthCallback -fuzztime=30s -parallel=2
 	go test ./internal/remote -run='^$$' -fuzz=FuzzJWTRejectsUntrustedInput -fuzztime=30s -parallel=2
+	go test ./internal/media -run='^$$' -fuzz=FuzzFramePositions -fuzztime=30s -parallel=2
 mutations:
 	python3 scripts/mutation_test.py
 security:

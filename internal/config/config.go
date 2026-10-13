@@ -16,6 +16,7 @@ type Config struct {
 	UserID, RootFolderID                                                     int64
 	RenderProxy                                                              bool
 	EnableWrites                                                             bool
+	EnableVideo                                                              bool
 	Transport, Listen, PublicURL                                             string
 	TLSCert, TLSKey                                                          string
 	Issuer, IntrospectionURL, OAuthClientID, OAuthClientSecret, OAuthSubject string

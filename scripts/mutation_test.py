@@ -109,6 +109,22 @@ MUTATIONS = [
      'if _, err := svc.List(checkCtx, cfg.RootFolderID, 0, 1); err != nil {',
      'if _, err := svc.List(checkCtx, cfg.RootFolderID, 0, 1); err != nil && false {',
      "./internal/server", "TestProviderPreflightRejectsUnownedRoot"),
+    ("video type gate bypassed", "internal/service/video.go",
+     'if !(ext == ".mp4"', 'if false && !(ext == ".mp4"',
+     "./internal/service", "TestVideoAuthorization"),
+    ("video size gate bypassed", "internal/service/video.go",
+     'm.Size <= 0 || m.Size > media.MaxVideoBytes', 'm.Size <= 0',
+     "./internal/service", "TestVideoAuthorization"),
+    ("video host allowlist bypassed", "internal/pcloud/video.go",
+     '!strings.HasSuffix(host, ".pcloud.com")', 'false',
+     "./internal/pcloud", "TestVideoDownloadBoundary"),
+    ("video frame count bypassed", "internal/media/frames.go",
+     'len(seconds) > MaxFrames', 'false',
+     "./internal/media", "TestFrameLimits"),
+    ("video output size bypassed", "internal/media/frames.go",
+     'b.Len()+len(p) > MaxFrameBytes', 'false',
+     "./internal/media", "TestFrameLimits"),
+
 ]
 
 def test(work, package, case):

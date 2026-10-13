@@ -108,6 +108,21 @@ Beispiele für den Chat:
 Suche wertet Dateimetadaten aus. Bildanalyse, semantische Bildsuche und
 Bildgenerierung sind nicht Bestandteil dieses Servers.
 
+### Video-Vorschau · optionale Lese-Erweiterung
+
+`get_video_frames(file_id, seconds)` liefert **bis zu vier JPEG-Bilder** eines
+MP4-, MOV- oder WebM-Videos als MCP-Bildinhalte. Beispiel:
+`{"file_id": 123, "seconds": [0, 1, 2, 3]}`.
+Damit kann ein bildfähiger KI-Client die sichtbaren Bewegungen beurteilen;
+der Server selbst klassifiziert keinen Tanz. Standbilder sind kein vollständiger
+Bewegungsablauf und enthalten keinen Ton. Eine Einschätzung ist keine Grundlage
+für automatisches Löschen oder Umbenennen.
+
+Die Erweiterung ist standardmäßig aus und benötigt `PCLOUD_ENABLE_VIDEO=true`,
+FFmpeg und Linux `prlimit`. Der bisherige Fünf-Tool-Vertrag bleibt im Standardprofil
+unverändert. Die Aktivierung im Live-Dienst und die echte ChatGPT-Bildabnahme
+werden separat dokumentiert. Details: [Video-Vorschau](docs/video-preview.md).
+
 ### Schreiben · implementiert, im Live-Dienst deaktiviert
 
 | Tool | Verhalten |

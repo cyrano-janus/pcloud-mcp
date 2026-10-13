@@ -53,6 +53,12 @@ func loadRuntime(cfg Config, lookup func(string) (string, bool)) (Config, error)
 		}
 		cfg.EnableWrites = v == "true"
 	}
+	if v, set := lookup("PCLOUD_ENABLE_VIDEO"); set {
+		if v != "true" && v != "false" {
+			return cfg, errors.New("PCLOUD_ENABLE_VIDEO must be true or false")
+		}
+		cfg.EnableVideo = v == "true"
+	}
 	if cfg.AccessToken != "" {
 		if cfg.Region != "eu" && cfg.Region != "us" {
 			return cfg, errors.New("PCLOUD_REGION must explicitly be eu or us")
@@ -68,8 +74,8 @@ func loadRuntime(cfg Config, lookup func(string) (string, bool)) (Config, error)
 		if err != nil || cfg.RootFolderID < 0 {
 			return cfg, errors.New("nonnegative PCLOUD_ROOT_FOLDER_ID required; 0 explicitly grants the account root")
 		}
-	} else if cfg.EnableWrites || cfg.Transport == "http" {
-		return cfg, errors.New("pCloud OAuth token required for writes or HTTP")
+	} else if cfg.EnableWrites || cfg.EnableVideo || cfg.Transport == "http" {
+		return cfg, errors.New("pCloud OAuth token required for writes, video or HTTP")
 	}
 	cfg.Listen = get("PCLOUD_MCP_LISTEN")
 	if cfg.Listen == "" {

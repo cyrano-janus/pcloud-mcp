@@ -32,7 +32,7 @@ func (p Policy) Authorize(actor Principal, op string, owner bool) error {
 		return ErrDenied
 	}
 	switch op {
-	case "whoami", "list_folder", "get_file_info", "search_files", "read_text_file":
+	case "whoami", "list_folder", "get_file_info", "search_files", "read_text_file", "get_video_frames":
 		return nil
 	case "create_folder", "copy_file", "upload_file", "save_artifact":
 		if p.EnableWrites && actor.Write {
