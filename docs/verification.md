@@ -157,3 +157,19 @@ Für JWTs ist sofortiger Widerruf nicht nachgewiesen: lokale Prüfung kann ein
 vorher ausgestelltes Token bis zum Ablauf (höchstens 15 Minuten ab `iat`)
 akzeptieren. Reale Anmeldung, PKCE, Anbieter-Refresh, Widerruf, Schlüsselrotation
 und Read-only-Zugriff auf `mcp-test` sind noch Freigabekriterien.
+
+
+## Secret-Scanner-Korrektur vom 13. Oktober 2026
+
+CI-Lauf 38307081045 bestand Build, Race-Tests, vet, sieben Fuzz-Ziele, alle
+32 Mutationen und beide Vulnerability-Scans. Gitleaks beanstandete ausschließlich
+einen deterministischen Dummy-Verschlüsselungsschlüssel in
+`cmd/pcloud-remote/activation_test.go`, Commit `ee57fe2`, Zeile 40. Er wird nur
+für das synthetische Test-Token `test-provider-token` verwendet, nicht für eine
+Produktiv-Credential. Es liegt damit kein Nachweis eines realen Secret-Leaks vor.
+
+Die Fixture baut ihren Testwert jetzt zur Laufzeit zusammen. `.gitleaksignore`
+enthält ausschließlich den vollständigen Fingerprint dieses historischen
+Testfundes (Commit, Pfad, Regel, Zeile). Keine Datei, kein Testverzeichnis und
+keine Erkennungsregel wird pauschal ausgenommen. Der vollständige Git-History-
+Scan mit den bestehenden Standardregeln wird weiterhin in CI ausgeführt.

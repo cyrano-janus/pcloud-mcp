@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/cyrano-janus/pcloud-mcp/internal/config"
@@ -37,7 +38,8 @@ func TestRemoteActivationFailsClosed(t *testing.T) {
 
 func activationEnvironment(t *testing.T) map[string]string {
 	t.Helper()
-	key := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	// Synthetic fixture, never used for a live credential.
+	key := strings.Repeat("e", 64)
 	envelope, err := credential.Seal(key, credential.Data{Token: "test-provider-token", Region: "eu", UserID: 7})
 	if err != nil {
 		t.Fatal(err)
