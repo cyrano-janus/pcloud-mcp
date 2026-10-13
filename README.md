@@ -33,7 +33,7 @@ Der Dienst läuft auf **Render Free in Frankfurt**, mit pCloud in der **EU-Regio
 | Öffentlicher Endpunkt | HTTPS + Streamable HTTP; ohne gültiges Token **401** |
 | Schreiben | **Deaktiviert** im gehosteten Dienst |
 | pCloud-Einrichtung | Abgeschlossen und abgeschaltet; `/setup/pcloud` liefert 503 |
-| Release | **0.3.0-rc.1**, Spezifikation weiterhin **0.2.0-draft** |
+| Release | **0.3.0-rc.1**, Spezifikation **1.0** verbindlich; Software-Abnahme noch offen |
 
 Eine frühere Abnahme war auf `mcp-test` begrenzt und verweigerte die Kontowurzel.
 Anschließend wurde die Kontowurzel auf ausdrücklichen Betreiberwunsch freigegeben
@@ -41,8 +41,8 @@ und mit einem echten MCP-Aufruf geprüft. Die Bindung an genau einen Besitzer
 bleibt erhalten; fremde oder nicht eigene Objekte werden weiterhin geprüft.
 
 **Noch offen:** reale Abnahme von Suche und Textlesen, Token-Refresh, Widerruf,
-Schlüsselrotation und Claude-Interoperabilität. Der Release Candidate ist keine
-umfassende produktive Freigabe. Bilder wurden als Metadaten aufgelistet,
+Schlüsselrotation und Claude-Interoperabilität. Die [SPEC v1.0](SPEC.md) legt das Leseprodukt verbindlich fest. Die Software
+bleibt bis zum vollständigen Release-Gate ein Release Candidate. Bilder wurden als Metadaten aufgelistet,
 aber nicht heruntergeladen oder analysiert.
 
 ## Verwendete Dienste

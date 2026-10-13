@@ -1,135 +1,255 @@
-# pcloud-mcp – Produktspezifikation
+# pcloud-mcp · Produktspezifikation v1.0
 
-**Version:** 0.2.0-draft  
-**Stand:** 2026-10-08  
-**Status:** Produktspezifikation im Entwurf; Teilimplementierung 0.3.0-rc.1 vorhanden, keine produktive Freigabe. Implementierter Umfang und offene Nachweise: [README](README.md).
+**Spezifikationsversion:** 1.0
+**Stand:** 2026-10-13
+**Status:** Verbindlicher Zielumfang für einen sicheren Lese-MCP.
+**Implementierung:** 0.3.0-rc.1; die Freigabe als Software v1.0.0 steht noch aus.
 
-## 1. Ziel
+Diese Spezifikation definiert den Produktvertrag. Ihre Version 1.0 ist keine
+Behauptung, dass bereits alle Anforderungen implementiert oder abgenommen sind.
+Aktueller Betrieb und Nachweise: [README](README.md),
+[Testnachweise](docs/verification.md), [Render-Status](docs/render-status.md).
 
-Ein sicherer, herstellerneutraler MCP-Server in Go, lokal oder bei einem Hostinganbieter betreibbar. Berechtigte Nutzer sollen über ChatGPT, Claude oder andere kompatible MCP-Clients ihr eigenes pCloud-Dateisystem in natürlicher Sprache durchsuchen und verwalten können.
+## 1. Produktziel und verbindlicher Umfang
 
-## 2. Funktionsumfang
+Ein MCP-Server in Go ermöglicht genau einem berechtigten Besitzer, sein eigenes
+pCloud-Konto über einen KI-Client kontrolliert zu lesen und zu durchsuchen.
+Der erste verbindlich abzunehmende Remote-Client ist **ChatGPT**.
 
-**Lesen:** Identität ermitteln, Ordner auflisten, Dateimetadaten abrufen, Dateien nach Name, Pfad, Typ, Größe und Datum suchen, unterstützte Textdateien lesen.
+**Software v1.0.0 umfasst:**
 
-**Schreiben:** Ordner erstellen, Dateien hochladen, vom Client bereitgestellte Artefakte (insbesondere erzeugte Bilder) speichern, Dateien kopieren, verschieben und umbenennen.
+- Die fünf Lese-Tools `whoami`, `list_folder`, `get_file_info`, `search_files`
+  und `read_text_file`.
+- Lokalen stdio-Transport und OAuth-geschütztes Streamable HTTP über HTTPS.
+- Feste Besitzerbindung, expliziten Ordnerumfang und serverseitige Policy-Prüfung.
+- Konfiguration der pCloud-Region `eu` oder `us` ohne stillen Regionwechsel.
+- Reproduzierbare Builds, automatisierte Qualitätsprüfungen, dokumentierten
+  Render-Betrieb und eine nachvollziehbare Release-Abnahme.
 
-**Besonders geschützt:** Überschreiben und Löschen erfordern eine eigenständige serverseitige Policy, explizite Bestätigung durch den Nutzer im unterstützten Client-Workflow und nachvollziehbare Audit-Einträge. Fehlt ein geeigneter Bestätigungsmechanismus, ist die Aktion zu verweigern.
+**Nicht im Umfang von v1.0.0:** Schreiboperationen, Uploads, Bildanalyse,
+Bildgenerierung, semantische Bildsuche, öffentliche Freigabelinks, Multi-User-
+Hosting sowie Verschieben, Umbenennen, Überschreiben oder Löschen.
+Bereits vorhandener optionaler Schreibcode ist eine spätere Erweiterung;
+er darf im v1.0-Leseprofil keine Schreib-Tools verfügbar machen.
 
-**Nicht im Umfang:** Bildinhalt analysieren, Bilder generieren, E-Mails/Nachrichten versenden. Semantische Bildsuche ohne zusätzliche Analyse oder Indizierung wird nicht behauptet. Öffentliche Freigabelinks sind nicht Bestandteil der ersten Ausbaustufen.
+Claude und weitere MCP-Clients sind mögliche spätere Abnahmen. Kompatibilität
+wird ausschließlich für tatsächlich geprüfte Client-/Protokollkombinationen
+behauptet. API-basierte Kopier-/Löschabläufe zwischen Cloud-Anbietern gehören
+nicht zu diesem Produktumfang.
 
-## 3. Normative Grundlagen
+## 2. Normative Grundlagen und Versionspolitik
 
-- Model Context Protocol Specification **2026-07-28**, einschließlich Transport, Tools und Authorization: https://modelcontextprotocol.io/specification/2026-07-28
-- Offizielles Go SDK: https://github.com/modelcontextprotocol/go-sdk
-- Go SDK **v1.8.0** unterstützt MCP 2026-07-28 und ältere Versionen laut offizieller Release-Dokumentation. Abweichende Client-Unterstützung wird durch echte Kompatibilitätstests festgestellt.
-- pCloud API-Dokumentation und OAuth-Anforderungen müssen vor Implementierung der jeweiligen Funktion gegen Primärquellen geprüft werden.
-- Relevante OAuth-, PKCE- und HTTP-Sicherheitsstandards in ihrer für die gewählte MCP-Version normativen Fassung.
+- MCP-Spezifikation **2026-07-28**, insbesondere Transport, Tools und Authorization:
+  <https://modelcontextprotocol.io/specification/2026-07-28>.
+- Offizielles MCP-Go-SDK: <https://github.com/modelcontextprotocol/go-sdk>.
+  Implementierungsbaseline ist **v1.8.0**; die gewählte Version wird gepinnt.
+- Go-Toolchain-Baseline **1.26.9**; Änderungen müssen Build und Security-Prüfungen
+  bestehen und im Release-Nachweis erscheinen.
+- pCloud-API- und OAuth-Semantik werden anhand offizieller Primärquellen geprüft:
+  <https://docs.pcloud.com/>.
+- Die für MCP normativen OAuth-/PKCE-/HTTP-Standards sind einzuhalten.
 
-Die MCP-Spezifikation ist normativ; SDK-Verhalten und Client-Kompatibilität sind gesondert zu testen.
+Die Spezifikationsversion, die Softwareversion und die MCP-Protokollversion sind
+getrennt. **Software v1.0.0** wird erst nach der Abnahme in Abschnitt 10 vergeben.
+Eine bloße Änderung der Versionszeichenfolge gilt nicht als Release-Freigabe.
+Innerhalb der Software-Hauptversion 1 bleiben freigegebene Tool-Namen, Eingabe-
+und Ausgabeverträge kompatibel; inkompatible Änderungen benötigen eine neue
+Hauptversion oder einen ausdrücklich versionierten Vertrag. Sicherheits-
+korrekturen dürfen unsichere Eingaben künftig verweigern und werden dokumentiert.
 
-## 4. Architektur
+## 3. Architektur und APIs
 
-```text
-ChatGPT / Claude / anderer MCP-Client
-    -> MCP Transport + OAuth
-    -> Identitätsprüfung / Mandantenbindung
-    -> Policy Enforcement Layer
-    -> MCP Tool Handler
-    -> pCloud Service (fachliche Operationen)
-    -> pCloud API Client (HTTP)
-    -> pCloud
+```mermaid
+flowchart TD
+    C["MCP-Client"] --> T["Transport + Authentifizierung"]
+    T --> P["Besitzerbindung + Policy"]
+    P --> H["MCP-Tool-Handler"]
+    H --> S["pCloud-Service"]
+    S --> A["Provider-API + Netzwerkgrenzen"]
 ```
 
-Tool-Handler dürfen pCloud-HTTP-Aufrufe nicht unmittelbar ausführen. Authentisierung, Autorisierung, Policy, Fachlogik und API-Transport sind getrennt und unabhängig testbar. Jede Operation wird unter der Identität des tatsächlich autorisierten Nutzers ausgeführt.
+Funktionen werden über klar definierte MCP-Tools bereitgestellt. Tool-Handler
+rufen keine Provider-HTTP-Endpunkte unmittelbar auf. Authentifizierung,
+Autorisierung, Fachlogik und API-Transport sind getrennt und unabhängig testbar.
 
-## 5. Transport und Identität
+Die Autorisierung gilt für jede Operation. Ein Modelltext, Dateiname oder
+Dateiinhalt darf weder Besitzerbindung noch Ordnerumfang verändern.
 
-- Lokal: stdio für geeignete Desktop-Clients; keine Remote-OAuth-Anforderung für ausschließlich lokale stdio-Prozesse, sofern Zugriff und Geheimnisse lokal gesichert sind.
-- Remote: MCP-konformer Streamable-HTTP-Endpunkt über TLS mit OAuth-basierter Nutzerauthentisierung und korrekter Resource-/Audience-Bindung.
-- PKCE S256, sichere Redirect-Validierung, CSRF-/State-Schutz und strikt begrenzte Token-Laufzeiten nach normativen Anforderungen.
-- Kein pCloud-Token in URL, Logs, Tool-Ergebnissen oder Fehlermeldungen.
-- Eigene Refresh-Tokens nur mit wirksamer Rotation, Replay-Erkennung und Widerruf bzw. einem anderweitig normkonformen Verfahren; stateless Neuausstellung ohne Invalidierung darf nicht als Rotation bezeichnet werden.
-- Multi-User-Hosting erfordert isolierte Benutzeridentitäten, Credentials, Zugriffsrechte und Audit-Daten.
-- pCloud EU-/US-Endpunkte und OAuth-Abläufe vor Umsetzung verifizieren; keine stillschweigende Regionsverwechslung.
+## 4. Besitzer, Regionen und Ordnerumfang
 
-## 6. MCP-Tools und Risikoklassen
+- Pro Instanz genau ein positives `PCLOUD_USER_ID` und ein festes OAuth-Subject.
+  E-Mail-Adresse oder Client-ID ersetzen die Subject-Bindung nicht.
+- Das tatsächliche Provider-Konto muss zur konfigurierten pCloud-Konto-ID passen.
+- Die Region ist explizit `eu` oder `us`. Token, Region und Konto-ID dürfen sich
+  beim Import eines verschlüsselten Zugangspakets nicht widersprechen.
+- EU- und US-Routing benötigen getrennte positive und negative Provider-Tests.
+  Die Release-Dokumentation nennt, welche Region real mit einem Konto geprüft
+  wurde; eine reale EU-Abnahme ist kein realer US-Nachweis.
+- `PCLOUD_ROOT_FOLDER_ID` ist ausdrücklich zu setzen. Eine Unterordner-ID erlaubt
+  ausschließlich dessen eigenen Baum. **0 erlaubt die Kontowurzel** und muss eine
+  bewusste Betreiberentscheidung sein, kein fehlender-Konfiguration-Default.
+- Objekt-ID, Eigentümerschaft und Zugehörigkeit zum erlaubten Baum werden geprüft.
+  Fremde, nicht eigene oder außerhalb liegende Objekte sind zu verweigern.
+- Umfangsänderungen erfolgen durch Betreiberkonfiguration und Deployment. Die
+  Beschreibung im Consent-Flow muss zum freigegebenen Umfang passen.
 
-| Tool | Funktion | Risiko |
+## 5. Transport und Anmeldung
+
+### Lokal
+
+stdio verwendet gesicherte lokale Credentials. Der konfigurierte Betreiber ist
+die lokale Identität. stdout enthält ausschließlich MCP-Protokollnachrichten;
+stderr enthält keine Tokens oder Dateiinhalte.
+
+### Remote
+
+- Streamable HTTP ausschließlich über HTTPS; auf Render erfolgt TLS-Terminierung
+  am Plattform-Edge. Host-/Origin-/Proxy-Vertrauensgrenzen sind explizit.
+- Ein externer Authorization Server übernimmt Anmeldung, Consent, PKCE S256,
+  Token-Ausstellung, Refresh und Anbieter-Widerruf.
+- Der MCP-Server prüft auf jeder Anfrage Signatur bzw. aktive Introspection,
+  exakten Issuer, Resource/Audience, Besitzer-Subject, Ablauf und `files:read`.
+- Die Resource-URL ist die tatsächliche HTTPS-MCP-Adresse einschließlich `/mcp`.
+  Tokens für andere Ressourcen und reine Provider-Tokens werden verweigert.
+- Access-Token-Laufzeit maximal **900 Sekunden ab `iat`**; ungültige, fehlende
+  oder unzulässig zukünftige Zeitangaben bleiben abgewiesen.
+- JWT-Prüfung und Introspection sind exklusive Konfigurationsmodi. Kein
+  stillschweigender Fallback bei einem Prüfungsfehler.
+- OAuth Protected Resource Metadata und 401-Auth-Challenge müssen eine echte
+  Client-Anmeldung ermöglichen. Redirects und Client-Registrierung sind zu begrenzen.
+- Zugangstokens gehören ausschließlich in den Authorization-Header, nicht in URL,
+  Logs, Fehlermeldungen oder Tool-Ausgaben.
+
+**Widerrufsvertrag:** Bei lokaler JWT-Prüfung kann ein ausgestellter Token bis
+zu seinem Ablauf gültig bleiben, maximal 15 Minuten. Sofortiger Widerruf wird
+nicht zugesichert. Refresh, Neuanmeldung, Anbieter-Widerruf und Schlüsselrotation
+sind real zu testen und mit ihrer tatsächlichen Wirkung zu dokumentieren.
+Bei erforderlichem sofortigem Widerruf ist ein entsprechender Introspection-
+Betrieb gesondert abzunehmen. Eigene Refresh-Token-Ausstellung ist kein v1.0-Ziel.
+
+## 6. Lese-Tools und Ressourcenbudgets
+
+Alle Tools gehören zur Risikoklasse **Lesen**. Fehler dürfen keine geheimen
+Werte oder Inhalte außerhalb der erlaubten Datenmenge offenlegen.
+
+| Tool | Vertrag | Mindestabnahme |
 | --- | --- | --- |
-| `whoami` | Autorisierte pCloud-Identität | A: Lesen |
-| `list_folder` | Ordnerinhalt | A |
-| `get_file_info` | Metadaten | A |
-| `search_files` | Begrenzte Suche nach Dateimetadaten | A |
-| `read_text_file` | Begrenztes Lesen unterstützter Textdateien | A |
-| `create_folder` | Ordner erstellen | B: Änderung |
-| `upload_file` | Client-seitig bereitgestellte Datei hochladen | B |
-| `save_artifact` | Erzeugtes Artefakt in Zielordner speichern | B |
-| `copy_file` | Datei kopieren | B |
-| `move_file` | Datei verschieben | B |
-| `rename_file` | Datei umbenennen | B |
-| `overwrite_file` | Bestehende Datei ersetzen | C: destruktiv |
-| `delete_file` | Datei löschen | C |
+| `whoami` | Verifizierte pCloud-Kontoidentität | Eigenes Konto erfolgreich; falsche Kontobindung verweigert |
+| `list_folder` | Eigene Einträge im erlaubten Baum, begrenzte Offset-Seiten | Leer/nicht leer, Pagination, ungültige ID, nicht eigener bzw. außerhalb liegender Ordner |
+| `get_file_info` | Metadaten einer eigenen Datei im erlaubten Baum | Eigene Datei erfolgreich; fremde/außerhalb liegende Datei verweigert |
+| `search_files` | Begrenzte Suche über Name, relativen Pfad, Endung, verlässlichen MIME-Typ, Größe und Datum | Treffer/kein Treffer, Unterordner, Filter, Budgetabbruch und `truncated` |
+| `read_text_file` | Begrenzter UTF-8-Text mit Kennzeichnung als untrusted data | Unterstützter Text erfolgreich; Binär-/NUL-/ungültiger UTF-8-Inhalt und Größenüberschreitung verweigert |
 
-Dateien sortieren ist zunächst eine durch den Client geplante Folge von Such-, Kopier- und Verschiebeoperationen, kein eigenständiges unkontrolliertes Massen-Tool. Für größere Änderungen ist eine überprüfbare Vorschau mit Einzelzielen vorzusehen.
+Verbindliche Maximalbudgets des v1.0-Profils:
 
-## 7. Upload und erzeugte Bilder
+| Bereich | Grenze |
+| --- | --- |
+| Ordnerseite | 200 Einträge; Offset höchstens 10.000 |
+| Textinhalt | 128 KiB |
+| Suchtraversierung | 20 Ordner, Tiefe 8, 2.000 Einträge |
+| Zusätzliche Such-Metadatenaufrufe | 100 |
+| Suchergebnis | 100 Treffer |
+| MCP-Request-Body | Konfiguriert, höchstens 8 MiB |
+| JWKS-Antwort im JWT-Modus | 64 KiB |
 
-Ein KI-Client erzeugt ein Bild außerhalb dieses Servers und übergibt es – soweit technisch unterstützt – als Datei/Artefakt zur Speicherung. Die tatsächliche Binärübergabe von ChatGPT und Claude an einen Remote-MCP-Server ist **offen und clientabhängig**; ein erfolgreicher Ende-zu-Ende-Test ist Freigabekriterium. Der Server behauptet keine universelle automatische Übergabe.
+Pagination ist kein Snapshot. Suchbudgets müssen ein unvollständiges Ergebnis
+sichtbar markieren; ein leeres Ergebnis nach Budgetabbruch darf nicht als
+vollständige Suche dargestellt werden. Abbruch und Timeouts sind zu beachten.
+Keine ungeprüften Download-URLs, keine unbegrenzte Rekursion und keine automatische
+Ausführung von Anweisungen aus gelesenen Dateien.
 
-- Keine unkontrollierten Downloads frei wählbarer URLs (SSRF- und Datenabflussrisiko).
-- Definierte sichere Upload-Schnittstelle; Streaming, Größenlimit, Hash/Integritätsprüfung und Zielprüfung.
-- Überschreiben standardmäßig verboten; separate bestätigte Operation erforderlich.
-- Dateityp und Metadaten prüfen; Dateiinhalte nicht als Handlungsanweisung interpretieren.
-- Keine Bildanalyse im Server.
+## 7. Security by Design und Geheimnisse
 
-## 8. Suche
+- Default deny, Least Privilege und getrennte Policy-Enforcement-Schichten.
+- Stabile Objekt-IDs; Eigentümer-/Baumprüfung und Eingabevalidierung verhindern
+  Cross-User-Zugriffe und Traversal.
+- Feste Provider-Hostallowlist, TLS-Prüfung, keine unkontrollierten Redirects,
+  Schutz gegen SSRF und DNS-Rebinding.
+- Explizite Größenlimits, Timeouts, Rate Limits und Parallelitätsgrenzen.
+  Health-Probes sind von der MCP-Anfragequote unabhängig.
+- pCloud-OAuth-Token und MCP-Zugangstoken sind getrennt. Credentials liegen in
+  Umgebungsvariablen oder Secret-Dateien, niemals im Git-Repository oder Image.
+- Für gehostetes pCloud-Onboarding: unabhängiges Setup-Secret, browsergebundener
+  CSRF-/State-Schutz, kurze Sitzungen, einmalige Callback-Verwendung, geprüfte
+  Provider-Identität und verschlüsseltes Zugangspaket mit separatem Schlüssel.
+- Das gehostete Setup wird nach Einrichtung abgeschaltet und darf nicht parallel
+  zum aktivierten nativen MCP-Leseprofil laufen.
+- Falsche Signatur, anderer Issuer/Subject/Audience, fehlender Scope, Ablauf,
+  Onboarding-Callback-Replay und Token in URL sind durch geeignete Tests abzudecken.
+- Dateiinhalte und Tool-Ergebnisse sind untrusted data; der Server verspricht
+  keine vollständige Prompt-Injection-Abwehr im angeschlossenen Modell.
+- Sicherheitsgrenzen und verbleibende Risiken sind offen zu dokumentieren.
 
-Suche über Dateinamen, Pfade, Erweiterung/MIME-Typ (soweit verlässlich vorhanden), Datum und Größe. Die tatsächlich von pCloud unterstützten Suchfunktionen sind vor der Wahl von API-Suche, begrenzter Traversierung oder optionalem Index zu prüfen. Keine unbegrenzte rekursive Suche ohne Ressourcenbudget.
+## 8. Deployment, Betrieb und Barrierefreiheit
 
-## 9. Sicherheitsmodell
+- 12-Factor-Konfiguration, gepinnte Abhängigkeiten, reproduzierbarer Build und
+  geordneter Shutdown; Container als alternative Betriebsform.
+- Verbindlicher Erstbetrieb: **ein bestehender Render-Web-Service, Frankfurt,
+  Free bevorzugt**. Keine kostenpflichtige Ressource ohne ausdrückliche Zustimmung.
+- GitHub Actions prüft Build, Tests und Security. **Render deployt erst nach
+  erfolgreichen CI-Prüfungen**, mit eingerichtetem Plattform-Healthcheck `/healthz`.
+- Health zeigt Prozessbereitschaft ohne Credentials oder Dateiinhalte. Vor Öffnung
+  des nativen Remote-Listeners sind Provider-Konto und Stammordner lesend zu prüfen.
+- Deployment-Konfiguration, tatsächliche Service-URL, Commit, Deployment-ID,
+  Testergebnisse, Rückweg zur sicheren Konfiguration und Betriebsgrenzen werden dokumentiert.
+- Free-Kaltstarts und fehlende Verfügbarkeitsgarantie sind kenntlich zu machen.
+- Versionierte APIs, verständliche Fehlermeldungen und barrierefreie Dokumentation.
+  Einrichtungsoberflächen haben semantische Beschriftungen, Tastaturbedienbarkeit,
+  verständliche Fehler und eine nutzbare mobile Darstellung.
 
-- **Default deny**, Least Privilege, serverseitige Policy; Modelltexte dürfen Rechte nicht erhöhen.
-- Eingaben, Dateiinhalte und MCP-Tool-Ausgaben sind nicht vertrauenswürdig; Schutz vor Prompt Injection.
-- Objektidentität und Eigentümerschaft serverseitig prüfen, bevorzugt stabile Datei-/Ordner-IDs.
-- Pfadnormalisierung, keine Traversal- oder Cross-User-Zugriffe.
-- Feste pCloud-API-Hostallowlist; Redirects und Download-Hosts explizit validieren.
-- SSRF-, DNS-Rebinding-, CSRF-, Replay-, Token-Diebstahl- und Cross-Tenant-Abwehr.
-- Größenlimits, Timeouts, Rate Limits, parallele Auftragsgrenzen, Abbruch und Backpressure.
-- Destruktive Änderungen: Ziel-ID, aktueller Zustand und Vorbedingungen erneut prüfen; bei Konflikt abbrechen. Keine rein vom LLM behauptete Nutzerbestätigung.
-- Audit für Schreiboperationen mit Benutzer, Operation, Objekt, Ergebnis, Zeitpunkt und Request-ID; keine Secrets oder Inhalte protokollieren.
-- Schutz gegen unautorisierte Tool-Ausführung auf localhost, auch bei lokalem HTTP-Betrieb.
-- Dependency-Pinning, regelmäßige Sicherheitsupdates, Secret-Scanning und Vulnerability-Checks.
+## 9. Entwicklung und Qualitätssicherung
 
-## 10. Deployment und Konfiguration
+TDD gilt für Domain-, Policy-, API- und kritische Authentifizierungslogik.
+Sicherheitsregeln benötigen gezielte Mutationstests; Parser und Netzwerkgrenzen
+werden zusätzlich mit Go-Fuzzing geprüft.
 
-Ein Go-Binary, reproduzierbare Builds, Container-Image als Option, Konfiguration über Umgebungsvariablen/Secret-Store (12-Factor). Remote-Betrieb ausschließlich über HTTPS mit korrekter Proxy-/Host-Konfiguration. Readiness/Health ohne Offenlegung sensibler Daten. Sichere Defaults und dokumentierte Ressourcenlimits.
+Pflichtprüfungen: Build, Unit-/Integrations-/MCP-Protokolltests, Race Detector,
+`go vet`, Format-/Modulprüfung, `govulncheck`, Secret-Scan der Git-Historie sowie
+reproduzierbare Deployment-Prüfung. Ein Testfund darf nur nach Prüfung als
+Fehlalarm eng begrenzt ausgenommen werden; keine pauschale Abschaltung des Scanners.
 
-## 11. Qualitätssicherung
+Die Testmatrix umfasst erfolgreiche Zugriffe, Owner-/Ordnergrenzen, leere
+Ergebnisse, Pagination, Filter, ungültige Eingaben, Limits einschließlich Grenze
++1, Abbruch, Provider-Fehler und Token-/Origin-/SSRF-Negativfälle. Automatisierte
+Tests und reale Client-Abnahmen sind getrennt auszuweisen.
 
-- TDD für Domain-, Policy- und API-Logik.
-- Unit-, Integrations-, End-to-End- und MCP-Konformitätstests.
-- Mutationstests für kritische Policy-/Autorisierungsregeln.
-- Go-Fuzzing für URL-, Pfad-, OAuth- und Input-Parser.
-- Race Detector, `go vet`, `govulncheck`, Secret-Scanning und Dependency-Prüfung in CI.
-- Sicherheitsfälle: fremde Datei-IDs, Prompt Injection, SSRF, Redirects, Token-Leaks, Replay, Größenlimit +1, abgebrochene Streams, Konflikte und fehlende Bestätigung.
-- Kompatibilitätstests separat mit ChatGPT und Claude einschließlich Auth, Refresh, Fehlerfällen und Artefaktübergabe.
-- Barrierefreie Dokumentation und verständliche Fehlertexte.
+## 10. Release-Gate für Software v1.0.0
 
-## 12. Umsetzungsetappen
+**Alle folgenden Kriterien sind vor einem Software-v1.0.0-Release zu erfüllen.**
+Ein Status „offen“ blockiert die Freigabe. Die Tabelle beschreibt den bekannten
+Stand bei Festlegung der SPEC v1.0; Fortschritte werden im Testnachweis gepflegt.
 
-1. **M0 – Fundament:** Go-Projekt, offizielles SDK, Konformität, CI, Threat Model, OAuth-Konzept.
-2. **M1 – Read-only:** `whoami`, `list_folder`, `get_file_info`, `search_files`, `read_text_file` inklusive Limits und Security-Tests.
-3. **M2 – Reversible Änderungen:** `create_folder`, `upload_file`, `save_artifact`, `copy_file`, `move_file`, `rename_file`; clientseitige Artefaktübergabe nachweisen.
-4. **M3 – Destruktive Änderungen:** `overwrite_file`, `delete_file` erst nach bestätigtem Policy-/Approval-Workflow und Security-Abnahme.
+| ID | Akzeptanzkriterium | Bekannter Stand am 13.10.2026 |
+| --- | --- | --- |
+| R1 | Genau die fünf Lese-Tools im freigegebenen Profil; keine verfügbare Schreiboperation | Gehostet erfüllt; gesamtes Release-Profil noch abschließend prüfen |
+| R2 | Reales ChatGPT-Login, `whoami`, Ordnerliste und Dateimetadaten erfolgreich | Erfüllt |
+| R3 | Reale Suche und Textlesen mit positiven/negativen Fällen nach Abschnitt 6 | Offen |
+| R4 | Pagination, Such-/Textbudgets und unvollständige Ergebnisse geprüft | Automatisierte Tests vorhanden; reale vollständige Matrix offen |
+| R5 | Unterordnerbegrenzung, explizite Root-Freigabe und Owner-Grenzen nachgewiesen | Reale Unterordner-/Root-Fälle und automatisierte Owner-Tests vorhanden |
+| R6 | Ablauf, Refresh, erneute Anmeldung, Widerrufsvertrag und Schlüsselrotation real geprüft | Offen |
+| R7 | EU/US-Routing mit Provider-Fixtures geprüft; reale Regionalabnahme klar ausgewiesen | EU real geprüft; regionale Gesamtmatrix abschließend prüfen |
+| R8 | Alle Pflichtprüfungen auf exakt dem Release-Commit erfolgreich, keine ungeklärten Security-Funde | Erfolgreiche CI für frühere Implementierung; Release-Commit noch nicht erstellt |
+| R9 | Render wartet auf CI; Plattform-Healthcheck und sichere Rückkonfiguration geprüft | Offen |
+| R10 | Einrichtungsablauf inklusive mobiler Bedienung und Geheimnisübernahme abgenommen | Grundablauf real erfolgreich; mobile vollständige Abnahme offen |
+| R11 | README, SPEC, Konfiguration und reale Ergebnisse widerspruchsfrei; Risiken und Clientgrenzen dokumentiert | Vorhanden; finale Release-Prüfung offen |
+| R12 | Softwareversion 1.0.0, Git-Tag `v1.0.0`, Release Notes mit Commit/Deployment/Abnahme | Offen; nicht durch SPEC-Versionsänderung erledigt |
 
-## 13. Offene Entscheidungen / Nachweise
+Der Release-Nachweis benennt konkret getestete Clients und Regionen. Ungetestete
+Kombinationen erhalten keinen pauschalen Kompatibilitäts- oder Produktionsnachweis.
 
-- pCloud OAuth-Verhalten, Regionen, Scopes und API-Semantik anhand aktueller Primärquellen.
-- Suche: native API vs. begrenzte Traversierung/Index.
-- Client-spezifische Binär-/Artefaktübergabe von ChatGPT und Claude.
-- Verlässliche Nutzerbestätigung im jeweils unterstützten MCP-Client.
-- Persistente Speicherung und Widerrufsmodell für OAuth-Refresh-/Grant-Zustand.
-- Dateiversionierung und Vorbedingungen, soweit pCloud verfügbar.
+## 11. Roadmap nach dem Lese-Release
 
-**Akzeptanz:** Keine Funktion gilt als fertig, bevor Security-Tests und reale Client-Interoperabilität für ihren Einsatzfall bestanden sind.
+| Etappe | Geplanter Umfang | Eigenständige Freigabebedingung |
+| --- | --- | --- |
+| Reversible Änderungen | Ordner erstellen, kopieren, Upload und Artefaktspeicherung | Schreibscope, serverseitige Policy, Audit, Integrität, Konflikt-/Überschreibschutz und reale Client-Abnahme |
+| Verschieben und Umbenennen | Kontrollierte Änderungen eigener Objekte | Ziel-/Zustandsprüfung, Vorschau und Tests konkurrierender Änderungen |
+| Destruktive Operationen | Überschreiben und Löschen | Separate Policy, explizite überprüfbare Nutzerbestätigung, erneute Vorbedingungsprüfung und nachvollziehbares Audit |
+| Weitere Clients | Claude und weitere MCP-Clients | Jeweils reale Anmeldung, Protokoll- und Tool-Abnahme |
+| Erweiterter Betrieb | Multi-User, zusätzliche Integrationen oder Infrastruktur | Separates Identitäts-/Credential-/Audit-Isolationskonzept und eigene SPEC-Erweiterung |
+
+Für Uploads ist die tatsächliche Binärübergabe des jeweiligen Clients separat
+nachzuweisen; keine universelle automatische ChatGPT-/Claude-Artefaktübergabe.
+Dateien sortieren ist eine überprüfbare Folge einzelner Operationen, kein
+unkontrolliertes Massen-Tool. Fehlt ein wirksamer Bestätigungsmechanismus für eine
+destruktive Aktion, wird sie verweigert. Eine spätere SPEC-Erweiterung ändert
+keine bestehenden Zugriffsrechte ohne ausdrückliche Betreiberentscheidung.
