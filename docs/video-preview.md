@@ -66,8 +66,26 @@ Lokal bestanden: `make check` einschließlich Race-Tests, Vet und stdio-Smoke;
 1.133.498 Ausführungen; Gitleaks-Arbeitsverzeichnisscan ohne Befund.
 Dies ist kein allgemeiner Mutationsscore oder Sicherheitsbeweis.
 
-Deployment und echte Privatvideo-/ChatGPT-Abnahme sind hier erst nach ihrem
-Nachweis zu ergänzen.
+Code-Commit: `22b40644a0c31a804c275db3905513a002c02a1c`.
+[GitHub CI 38386423571](https://github.com/cyrano-janus/pcloud-mcp/actions/runs/38386423571):
+vollständig erfolgreich, einschließlich 8 Fuzz-Ziele, 37 Mutationen,
+Vulnerability-/Secret-Checks und Container-Build.
+
+Bestehender Render-Dienst `srv-db4jqecs728c73fj5qd0`, Workspace
+`tea-db4bm53l550s73b87vl0`, weiterhin Free/Frankfurt/native Go.
+`PCLOUD_ENABLE_VIDEO=true` wurde nach erfolgreicher CI per zusammenführendem
+Env-Update gesetzt; andere Env-Werte wurden nicht ausgelesen oder ersetzt.
+Aktivierungsdeployment `dep-db70ubbbc2fs73eu3vmg`: live, abgeschlossen
+2026-10-13 11:00:33 UTC. URL: https://pcloud-mcp-ppew.onrender.com/mcp.
+
+[Öffentlicher HTTP-Testbericht](video-http-verification.json):
+HTTPS-Health und OAuth-Metadaten 200, fehlender/ungültiger Bearer 401,
+fremder Origin 403, Query-Token 400. Bestehender authentifizierter Konto-
+und Ordnerzugriff erfolgreich. Die echte Privatvideo-/ChatGPT-Bildabnahme
+bleibt offen: Der Tool-Katalog der vorhandenen ChatGPT-Verbindung enthielt
+in dieser Sitzung weiterhin nur die bisherigen fünf Tools; das neue Tool
+muss im Client-Katalog aktualisiert werden. Decoder-Präsenz und Verarbeitung
+des realen Privatvideos auf Render sind damit noch nicht als getestet behauptet.
 
 ## Primärquellen
 

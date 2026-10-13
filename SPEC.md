@@ -221,7 +221,7 @@ Stand bei Festlegung der SPEC v1.0; Fortschritte werden im Testnachweis gepflegt
 
 | ID | Akzeptanzkriterium | Bekannter Stand am 13.10.2026 |
 | --- | --- | --- |
-| R1 | Genau die fünf Lese-Tools im freigegebenen Profil; keine verfügbare Schreiboperation | Gehostet erfüllt; gesamtes Release-Profil noch abschließend prüfen |
+| R1 | Genau die fünf Lese-Tools im freigegebenen Profil; keine verfügbare Schreiboperation | Standardprofil automatisiert; gehostet zusätzlich opt-in Video-Profil (Abschnitt 12), dessen Bildabnahme offen |
 | R2 | Reales ChatGPT-Login, `whoami`, Ordnerliste und Dateimetadaten erfolgreich | Erfüllt |
 | R3 | Reale Suche und Textlesen mit positiven/negativen Fällen nach Abschnitt 6 | Offen |
 | R4 | Pagination, Such-/Textbudgets und unvollständige Ergebnisse geprüft | Automatisierte Tests vorhanden; reale vollständige Matrix offen |

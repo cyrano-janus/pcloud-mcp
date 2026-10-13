@@ -1,0 +1,43 @@
+{
+  "tested_at": "2026-10-13T11:01:23.314560+00:00",
+  "service_url": "https://pcloud-mcp-ppew.onrender.com",
+  "mode": "protected",
+  "checks": [
+    {
+      "check": "https_health",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "oauth_resource_metadata",
+      "status": 200,
+      "passed": true
+    },
+    {
+      "check": "unauthenticated_tools_denied",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "check": "invalid_bearer_denied",
+      "status": 401,
+      "passed": true
+    },
+    {
+      "check": "foreign_origin_denied",
+      "status": 403,
+      "passed": true
+    },
+    {
+      "check": "query_token_denied",
+      "status": 400,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "not_tested": [
+    "authenticated MCP operation",
+    "real pCloud access",
+    "OAuth login and revocation"
+  ]
+}

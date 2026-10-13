@@ -120,8 +120,8 @@ für automatisches Löschen oder Umbenennen.
 
 Die Erweiterung ist standardmäßig aus und benötigt `PCLOUD_ENABLE_VIDEO=true`,
 FFmpeg und Linux `prlimit`. Der bisherige Fünf-Tool-Vertrag bleibt im Standardprofil
-unverändert. Die Aktivierung im Live-Dienst und die echte ChatGPT-Bildabnahme
-werden separat dokumentiert. Details: [Video-Vorschau](docs/video-preview.md).
+unverändert. Auf dem bestehenden Render-Dienst ist die Option aktiviert (CI bestanden);
+die echte ChatGPT-Bildabnahme nach Aktualisierung des Tool-Katalogs ist offen. Details: [Video-Vorschau](docs/video-preview.md).
 
 ### Schreiben · implementiert, im Live-Dienst deaktiviert
 
